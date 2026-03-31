@@ -1,0 +1,6 @@
+node_modules/
+backend/keys/
+backend/uploads/
+backend/encrypted/
+*.mlenc
+.env
