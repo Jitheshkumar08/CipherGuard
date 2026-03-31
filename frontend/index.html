@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MLEFPS — Multi-Level Encryption</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="assets/cipherGuard.png">
+</head>
+
+<body>
+
+  <!-- Background orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-logo">
+        <div class="logo-icon">
+          <img src="assets/cipherGuard.png" alt="" width="57px">
+        </div>
+        <div>
+          <div class="logo-name">CipherGuard</div>
+          <div class="logo-sub">Multi-Level Encryption File Protection System</div>
+        </div>
+      </div>
+      <div class="header-badges">
+        <span class="layer-badge b-aes">AES-256</span>
+        <span class="layer-sep">→</span>
+        <span class="layer-badge b-des">3DES</span>
+        <span class="layer-sep">→</span>
+        <span class="layer-badge b-rsa">RSA-2048</span>
+      </div>
+    </header>
+
+    <!-- Nav tabs -->
+    <nav class="nav">
+      <button class="nav-tab active" data-tab="encrypt">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        Encrypt
+      </button>
+      <button class="nav-tab" data-tab="decrypt">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" />
+          <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+        </svg>
+        Decrypt
+      </button>
+      <button class="nav-tab" data-tab="files">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14,2 14,8 20,8" />
+        </svg>
+        Files
+      </button>
+      <button class="nav-tab" data-tab="about">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        About
+      </button>
+    </nav>
+
+    <!-- Panels -->
+    <main class="panels">
+
+      <!-- ── ENCRYPT ── -->
+      <div class="panel active" id="panel-encrypt">
+        <div class="glass-card">
+          <div class="card-header">
+            <h2>Encrypt Image</h2>
+            <p>Your image passes through AES-256 → 3DES → RSA-2048 before being saved as a <code>.mlenc</code> file.</p>
+          </div>
+
+          <div class="drop-zone" id="enc-drop">
+            <div class="drop-inner">
+              <div class="drop-icon-wrap">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <div class="drop-text">Drop your image here</div>
+              <div class="drop-hint">JPG, PNG, GIF, BMP, WEBP, TIFF · max 20 MB</div>
+              <button class="btn-outline" id="enc-browse">Browse files</button>
+            </div>
+            <input type="file" id="enc-input" accept="image/*" hidden />
+          </div>
+
+          <div class="preview-block hidden" id="enc-preview-block">
+            <img id="enc-preview" src="" alt="preview" />
+            <div class="preview-meta" id="enc-meta"></div>
+          </div>
+
+          <button class="btn-primary" id="enc-btn" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Encrypt Image
+          </button>
+
+          <!-- Step progress -->
+          <div class="step-progress hidden" id="enc-progress">
+            <div class="step-bar-wrap">
+              <div class="step-bar-bg">
+                <div class="step-bar-fill" id="enc-bar-fill"></div>
+              </div>
+              <span class="step-pct" id="enc-pct">0%</span>
+            </div>
+            <div class="steps" id="enc-steps">
+              <div class="step" id="enc-s1" data-state="pending">
+                <div class="step-dot"><span class="step-spinner"></span><svg class="step-check" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div class="step-label">AES-256 encryption</div>
+              </div>
+              <div class="step" id="enc-s2" data-state="pending">
+                <div class="step-dot"><span class="step-spinner"></span><svg class="step-check" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div class="step-label">Triple-DES encryption</div>
+              </div>
+              <div class="step" id="enc-s3" data-state="pending">
+                <div class="step-dot"><span class="step-spinner"></span><svg class="step-check" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div class="step-label">RSA-2048 key wrapping</div>
+              </div>
+              <div class="step" id="enc-s4" data-state="pending">
+                <div class="step-dot"><span class="step-spinner"></span><svg class="step-check" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div class="step-label">Building .mlenc file</div>
+              </div>
+            </div>
+            <div class="step-status" id="enc-status"></div>
+          </div>
+
+          <!-- Result -->
+          <div class="result-block success hidden" id="enc-result">
+            <div class="result-icon">✓</div>
+            <div class="result-body" id="enc-result-body"></div>
+            <button class="btn-ghost" id="enc-download-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download .mlenc File
+            </button>
+          </div>
+
+          <!-- Error -->
+          <div class="result-block error hidden" id="enc-error">
+            <div class="result-icon">✕</div>
+            <div class="result-body" id="enc-error-body"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── DECRYPT ── -->
+      <div class="panel" id="panel-decrypt">
+        <div class="glass-card">
+          <div class="card-header">
+            <h2>Decrypt File</h2>
+            <p>Upload a <code>.mlenc</code> file encrypted by this system. The pipeline is reversed to restore your
+              original image.</p>
+          </div>
+
+          <div class="drop-zone" id="dec-drop">
+            <div class="drop-inner">
+              <div class="drop-icon-wrap">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14,2 14,8 20,8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="12" y2="18" />
+                  <line x1="15" y1="15" x2="12" y2="18" />
+                </svg>
+              </div>
+              <div class="drop-text">Drop your .mlenc file here</div>
+              <div class="drop-hint">Only files encrypted by MLEFPS are accepted</div>
+              <button class="btn-outline" id="dec-browse">Browse files</button>
+            </div>
+            <input type="file" id="dec-input" accept=".mlenc" hidden />
+          </div>
+
+          <div class="file-pill hidden" id="dec-pill"></div>
+
+          <button class="btn-primary" id="dec-btn" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+            </svg>
+            Decrypt File
+          </button>
+
+          <!-- Step progress -->
+          <div class="step-progress hidden" id="dec-progress">
+            <div class="step-bar-wrap">
+              <div class="step-bar-bg">
+                <div class="step-bar-fill" id="dec-bar-fill"></div>
+              </div>
+              <span class="step-pct" id="dec-pct">0%</span>
+            </div>
+            <div class="steps" id="dec-steps">
+              <div class="step" id="dec-s1" data-state="pending">
+                <div class="step-dot"><span class="step-spinner"></span><svg class="step-check" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div class="step-label">Validating file header</div>
+              </div>
+              <div class="step" id="dec-s2" data-state="pending">
+                <div class="step-dot"><span class="step-spinner"></span><svg class="step-check" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div class="step-label">RSA-2048 key decryption</div>
+              </div>
+              <div class="step" id="dec-s3" data-state="pending">
+                <div class="step-dot"><span class="step-spinner"></span><svg class="step-check" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div class="step-label">Reversing Triple-DES layer</div>
+              </div>
+              <div class="step" id="dec-s4" data-state="pending">
+                <div class="step-dot"><span class="step-spinner"></span><svg class="step-check" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg></div>
+                <div class="step-label">Restoring original image</div>
+              </div>
+            </div>
+            <div class="step-status" id="dec-status"></div>
+          </div>
+
+          <!-- Result -->
+          <div class="result-block success hidden" id="dec-result">
+            <div class="result-icon">✓</div>
+            <div class="result-body" id="dec-result-body"></div>
+            <img id="dec-preview" src="" alt="Decrypted" class="dec-preview-img" />
+          </div>
+
+          <!-- Error -->
+          <div class="result-block error hidden" id="dec-error">
+            <div class="result-icon">✕</div>
+            <div class="result-body" id="dec-error-body"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FILES ── -->
+      <div class="panel" id="panel-files">
+        <div class="glass-card">
+          <div class="card-header"
+            style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem">
+            <div>
+              <h2>Stored Files</h2>
+              <p>All encrypted files stored on this server.</p>
+            </div>
+            <button class="btn-outline" id="files-refresh">↻ Refresh</button>
+          </div>
+          <div id="files-list">
+            <div class="spinner-wrap">
+              <div class="spinner"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ABOUT ── -->
+      <div class="panel" id="panel-about">
+        <div class="glass-card">
+          <div class="card-header">
+            <h2>How It Works</h2>
+          </div>
+
+          <div class="about-section">
+            <div class="about-label">Encryption pipeline</div>
+            <div class="about-pipeline">
+              <div class="about-step as-blue">
+                <div class="as-num">1</div>
+                <div class="as-title">AES-256-CBC</div>
+                <div class="as-desc">Raw image binary encrypted with a 256-bit key and random 16-byte IV in CBC mode.
+                  Fastest layer — handles the bulk data.</div>
+              </div>
+              <div class="as-arrow">→</div>
+              <div class="about-step as-purple">
+                <div class="as-num">2</div>
+                <div class="as-title">Triple-DES-CBC</div>
+                <div class="as-desc">AES output re-encrypted with a 24-byte 3DES key and 8-byte IV. Independently keyed
+                  — a second complete encryption layer.</div>
+              </div>
+              <div class="as-arrow">→</div>
+              <div class="about-step as-amber">
+                <div class="as-num">3</div>
+                <div class="as-title">RSA-2048-OAEP</div>
+                <div class="as-desc">Both symmetric keys packed into 80 bytes and encrypted with RSA-2048. The private
+                  key never leaves the server.</div>
+              </div>
+              <div class="as-arrow">→</div>
+              <div class="about-step as-gray">
+                <div class="as-num">📄</div>
+                <div class="as-title">.mlenc file</div>
+                <div class="as-desc">Binary format: magic header + RSA-encrypted keys + original filename +
+                  double-encrypted ciphertext.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="about-section">
+            <div class="about-label">.mlenc file format</div>
+            <div class="hex-format">
+              <div class="hex-row"><span class="hex-range">0–7</span><span
+                  class="hex-field hf-magic">MLENC001</span><span class="hex-desc">8-byte ASCII magic header</span>
+              </div>
+              <div class="hex-row"><span class="hex-range">8–11</span><span class="hex-field hf-key">key_len</span><span
+                  class="hex-desc">uint32 big-endian — RSA block size</span></div>
+              <div class="hex-row"><span class="hex-range">12–267</span><span class="hex-field hf-key">RSA-encrypted
+                  keys</span><span class="hex-desc">256 bytes — AES+3DES keys wrapped by RSA</span></div>
+              <div class="hex-row"><span class="hex-range">268–269</span><span
+                  class="hex-field hf-name">name_len</span><span class="hex-desc">uint16 big-endian — filename
+                  length</span></div>
+              <div class="hex-row"><span class="hex-range">270–N</span><span
+                  class="hex-field hf-name">filename</span><span class="hex-desc">UTF-8 original filename</span></div>
+              <div class="hex-row"><span class="hex-range">N+1–EOF</span><span
+                  class="hex-field hf-cipher">ciphertext</span><span class="hex-desc">AES(3DES(image)) — the
+                  double-encrypted data</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+
+</html>
