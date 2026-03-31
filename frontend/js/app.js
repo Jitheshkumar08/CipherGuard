@@ -5,8 +5,8 @@
 function $(id) { return document.getElementById(id); }
 function fmt(n) {
   if (n < 1024) return n + ' B';
-  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
-  return (n/1048576).toFixed(2) + ' MB';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  return (n / 1048576).toFixed(2) + ' MB';
 }
 function show(el) { el && el.classList.remove('hidden'); }
 function hide(el) { el && el.classList.add('hidden'); }
@@ -26,10 +26,10 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
 class StepController {
   constructor(prefix, totalSteps) {
     this.prefix = prefix;
-    this.total  = totalSteps;
+    this.total = totalSteps;
     this.current = 0;
     this.barFill = $(prefix + '-bar-fill');
-    this.pctEl   = $(prefix + '-pct');
+    this.pctEl = $(prefix + '-pct');
     this.statusEl = $(prefix + '-status');
   }
 
@@ -40,7 +40,7 @@ class StepController {
 
   setBar(pct, statusMsg) {
     this.barFill.style.width = pct + '%';
-    this.pctEl.textContent   = Math.round(pct) + '%';
+    this.pctEl.textContent = Math.round(pct) + '%';
     if (statusMsg && this.statusEl) this.statusEl.textContent = statusMsg;
   }
 
@@ -50,10 +50,10 @@ class StepController {
     show($(this.prefix + '-progress'));
 
     // Mark all pending
-    steps.forEach((s, i) => this.setState(i+1, 'pending'));
+    steps.forEach((s, i) => this.setState(i + 1, 'pending'));
 
     // Start first step immediately, rest simulate in parallel with API
-    const totalDuration = steps.reduce((a,s) => a + s.duration, 0);
+    const totalDuration = steps.reduce((a, s) => a + s.duration, 0);
     let elapsed = 0;
 
     // Kick off API call
@@ -63,21 +63,21 @@ class StepController {
     const animateSteps = async () => {
       for (let i = 0; i < steps.length - 1; i++) {
         const s = steps[i];
-        this.setState(i+1, 'active');
+        this.setState(i + 1, 'active');
         this.setBar((elapsed / totalDuration) * 90, s.label + '...');
         await delay(s.duration);
-        this.setState(i+1, 'done');
+        this.setState(i + 1, 'done');
         elapsed += s.duration;
       }
       // Last step waits for API to complete
       this.setState(steps.length, 'active');
-      this.setBar(92, steps[steps.length-1].label + '...');
+      this.setBar(92, steps[steps.length - 1].label + '...');
     };
 
     const [result] = await Promise.all([apiPromise, animateSteps()]);
 
     // All done
-    steps.forEach((s, i) => this.setState(i+1, 'done'));
+    steps.forEach((s, i) => this.setState(i + 1, 'done'));
     this.setBar(100, 'Complete');
     return result;
   }
@@ -141,14 +141,14 @@ $('enc-btn').addEventListener('click', async () => {
 
   try {
     const result = await encSteps.run([
-      { id:'s1', label:'AES-256 encryption',     duration: 600 },
-      { id:'s2', label:'Triple-DES encryption',  duration: 600 },
-      { id:'s3', label:'RSA-2048 key wrapping',  duration: 700 },
-      { id:'s4', label:'Building .mlenc file',   duration: 400 },
+      { id: 's1', label: 'AES-256 encryption', duration: 600 },
+      { id: 's2', label: 'Triple-DES encryption', duration: 600 },
+      { id: 's3', label: 'RSA-2048 key wrapping', duration: 700 },
+      { id: 's4', label: 'Building .mlenc file', duration: 400 },
     ], async () => {
       const fd = new FormData();
       fd.append('image', encFile);
-      const res  = await fetch('/api/encrypt', { method:'POST', body:fd });
+      const res = await fetch('/api/encrypt', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Encryption failed');
       return data;
@@ -163,7 +163,7 @@ $('enc-btn').addEventListener('click', async () => {
   } catch (err) {
     // Find which step we were on and mark it error
     const activeStep = document.querySelector('#panel-encrypt .step[data-state="active"]');
-    const stepNum = activeStep ? activeStep.id.replace('enc-s','') : 4;
+    const stepNum = activeStep ? activeStep.id.replace('enc-s', '') : 4;
     encSteps.markError(parseInt(stepNum), err.message);
     $('enc-error-body').textContent = err.message;
     show($('enc-error'));
@@ -175,7 +175,7 @@ $('enc-btn').addEventListener('click', async () => {
 $('enc-download-btn').addEventListener('click', async () => {
   if (!lastEncResult) return;
   // Use the binary-safe download endpoint
-  const res  = await fetch(`/api/decrypt/download/${lastEncResult.fileId}`);
+  const res = await fetch(`/api/decrypt/download/${lastEncResult.fileId}`);
   if (!res.ok) { alert('Download failed.'); return; }
   const blob = await res.blob();
   triggerDownload(blob, lastEncResult.filename);
@@ -187,12 +187,14 @@ $('enc-download-btn').addEventListener('click', async () => {
 
 const decSteps = new StepController('dec', 4);
 let decFile = null;
+let lastDecResult = null;
 
 setupDrop($('dec-drop'), $('dec-input'), setDecFile);
 $('dec-browse').addEventListener('click', e => { e.stopPropagation(); $('dec-input').click(); });
 
 function setDecFile(file) {
   decFile = file;
+  lastDecResult = null;
   $('dec-pill').textContent = `📄 ${file.name} · ${fmt(file.size)}`;
   show($('dec-pill'));
   $('dec-btn').disabled = false;
@@ -208,35 +210,35 @@ $('dec-btn').addEventListener('click', async () => {
 
   try {
     const { blob, originalName } = await decSteps.run([
-      { id:'s1', label:'Validating file header',      duration: 400 },
-      { id:'s2', label:'RSA-2048 key decryption',     duration: 800 },
-      { id:'s3', label:'Reversing Triple-DES layer',  duration: 600 },
-      { id:'s4', label:'Restoring original image',    duration: 500 },
+      { id: 's1', label: 'Validating file header', duration: 400 },
+      { id: 's2', label: 'RSA-2048 key decryption', duration: 800 },
+      { id: 's3', label: 'Reversing Triple-DES layer', duration: 600 },
+      { id: 's4', label: 'Restoring original image', duration: 500 },
     ], async () => {
       const fd = new FormData();
       fd.append('encfile', decFile);
-      const res = await fetch('/api/decrypt', { method:'POST', body:fd });
+      const res = await fetch('/api/decrypt', { method: 'POST', body: fd });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Server error' }));
         throw new Error(err.error || 'Decryption failed');
       }
-      const blob        = await res.blob();
-      const rawName     = res.headers.get('X-Original-Name') || 'decrypted_image';
+      const blob = await res.blob();
+      const rawName = res.headers.get('X-Original-Name') || 'decrypted_image';
       const originalName = decodeURIComponent(rawName);
       return { blob, originalName };
     });
 
+    lastDecResult = { blob, originalName };
     const imgUrl = URL.createObjectURL(blob);
     $('dec-result-body').innerHTML =
       `<strong>Recovered:</strong> ${originalName}<br>` +
       `<strong>Size:</strong> ${fmt(blob.size)}`;
     $('dec-preview').src = imgUrl;
     show($('dec-result'));
-    triggerDownload(blob, originalName);
 
   } catch (err) {
     const activeStep = document.querySelector('#panel-decrypt .step[data-state="active"]');
-    const stepNum = activeStep ? parseInt(activeStep.id.replace('dec-s','')) : 1;
+    const stepNum = activeStep ? parseInt(activeStep.id.replace('dec-s', '')) : 1;
     decSteps.markError(stepNum, err.message);
     $('dec-error-body').innerHTML =
       err.message.replace(/\n/g, '<br>').replace(/(Solution:.*)/g, '<strong style="color:var(--amber)">$1</strong>');
@@ -244,6 +246,11 @@ $('dec-btn').addEventListener('click', async () => {
   } finally {
     $('dec-btn').disabled = false;
   }
+});
+
+$('dec-download-btn').addEventListener('click', () => {
+  if (!lastDecResult) return;
+  triggerDownload(lastDecResult.blob, lastDecResult.originalName);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -254,7 +261,7 @@ async function loadFiles() {
   const listEl = $('files-list');
   listEl.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div></div>';
   try {
-    const res  = await fetch('/api/files');
+    const res = await fetch('/api/files');
     const data = await res.json();
     if (!data.files.length) {
       listEl.innerHTML = '<div class="empty-state">No encrypted files stored yet.<br>Encrypt an image to get started.</div>';
@@ -285,7 +292,7 @@ window.downloadMlenc = async (fileId, filename) => {
 
 window.decryptById = async (fileId) => {
   const res = await fetch(`/api/decrypt/${fileId}`);
-  if (!res.ok) { const e = await res.json().catch(()=>({})); alert('Decryption failed: ' + (e.error || 'unknown')); return; }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); alert('Decryption failed: ' + (e.error || 'unknown')); return; }
   const blob = await res.blob();
   const name = decodeURIComponent(res.headers.get('X-Original-Name') || 'decrypted_image');
   triggerDownload(blob, name);
@@ -294,7 +301,7 @@ window.decryptById = async (fileId) => {
 window.deleteFile = async (fileId, btn) => {
   if (!confirm('Permanently delete this encrypted file?')) return;
   btn.disabled = true;
-  const res = await fetch(`/api/files/${fileId}`, { method:'DELETE' });
+  const res = await fetch(`/api/files/${fileId}`, { method: 'DELETE' });
   if (res.ok) loadFiles(); else { btn.disabled = false; alert('Delete failed.'); }
 };
 
@@ -303,7 +310,7 @@ $('files-refresh').addEventListener('click', loadFiles);
 // ── Shared helpers ─────────────────────────────────────────────────────────────
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
-  const a   = Object.assign(document.createElement('a'), { href:url, download:filename });
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename });
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }

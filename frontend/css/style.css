@@ -392,6 +392,8 @@ body {
   animation: fadeUp 0.3s var(--ease);
 }
 
+
+
 .preview-meta {
   font-size: 12px;
   color: var(--text-3);
@@ -618,7 +620,7 @@ body {
 
 .dec-preview-img {
   max-width: 100%;
-  max-height: 240px;
+  max-height: fit-content;
   border-radius: var(--radius-sm);
   border: 1px solid var(--glass-border);
   display: block;
