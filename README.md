@@ -161,4 +161,4 @@ JPG, JPEG, PNG, GIF, BMP, WEBP, TIFF
 
 ---
 
-*Built for the MLEFPS academic project demonstrating defense-in-depth cryptography.*
+*Built for the MLEFPS academic project demonstrating defense-in-depth cryptography...*
