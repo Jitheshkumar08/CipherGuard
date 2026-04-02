@@ -4,3 +4,6 @@ backend/uploads/
 backend/encrypted/
 *.mlenc
 .env
+backend/.env
+backend/.env.*
+!backend/.env.example
