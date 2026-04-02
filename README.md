@@ -162,3 +162,29 @@ JPG, JPEG, PNG, GIF, BMP, WEBP, TIFF
 ---
 
 *Built for the MLEFPS academic project demonstrating defense-in-depth cryptography.*
+
+---
+
+## Deploy (Render + Vercel)
+
+### Backend on Render
+
+1. Create a new Render Blueprint service from this repository.
+2. Ensure it uses `render.yaml` at the repo root.
+3. Set required secrets in Render:
+    - `DATABASE_URL`
+    - `JWT_SECRET`
+    - `CORS_ORIGIN` (set to your Vercel URL, or comma-separated list)
+4. Keep `SERVE_FRONTEND=false` for split deployment.
+5. Keep `STORAGE_DIR=/var/data/cipherguard/storage` and attach the persistent disk from `render.yaml`.
+6. Run `backend/db/schema.sql` on your PostgreSQL database before first use.
+
+### Frontend on Vercel
+
+1. Create a Vercel project pointing to `frontend/` as the root directory.
+2. In `frontend/vercel.json`, replace `YOUR-RENDER-BACKEND-URL` with your real Render backend domain.
+3. Deploy. All `/api/*` browser calls will be rewritten to the Render backend.
+
+### Local environment template
+
+Copy `backend/.env.example` to `backend/.env` and fill values for local development.
