@@ -324,6 +324,33 @@ const sbSidebar = $('profile-sidebar');
 let loadedProfile = false;
 let userRsaKey = '';
 
+function applyAvatarLetter(username) {
+  if (!username || typeof username !== 'string') return;
+  const letter = username.trim().charAt(0).toUpperCase();
+  if (!letter) return;
+  $('avatar-btn').textContent = letter;
+  $('sb-avatar').textContent = letter;
+}
+
+function decodeJwtPayload(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    return JSON.parse(atob(padded));
+  } catch {
+    return null;
+  }
+}
+
+function hydrateAvatarFromToken() {
+  const token = localStorage.getItem('token');
+  if (!token) return;
+  const payload = decodeJwtPayload(token);
+  if (payload && payload.username) applyAvatarLetter(payload.username);
+}
+
 function toggleSidebar(showOrHide) {
   if (showOrHide) {
     sbOverlay.classList.add('open');
@@ -341,31 +368,36 @@ sbOverlay.addEventListener('click', () => toggleSidebar(false));
 
 async function fetchUserProfile() {
   try {
-    // Fetch basic details
-    const resMe = await fetch('/api/user/me');
-    if (resMe.ok) {
+    const meTask = (async () => {
+      const resMe = await fetch('/api/user/me');
+      if (!resMe.ok) return;
       const { username, email } = await resMe.json();
       $('sb-username').value = username;
       $('sb-email').value = email;
-      $('sb-avatar').textContent = username.charAt(0).toUpperCase();
-      $('avatar-btn').textContent = username.charAt(0).toUpperCase();
-    }
+      applyAvatarLetter(username);
+    })();
 
-    // Fetch private key
-    const resKey = await fetch('/api/user/private-key');
-    if (resKey.ok) {
-      const { privateKey } = await resKey.json();
-      userRsaKey = privateKey;
-      $('sb-rsa-key').textContent = privateKey;
-    } else {
-      $('sb-rsa-key').textContent = 'Failed to fetch private key.';
-    }
-    
+    const keyTask = (async () => {
+      const resKey = await fetch('/api/user/private-key');
+      if (resKey.ok) {
+        const { privateKey } = await resKey.json();
+        userRsaKey = privateKey;
+        $('sb-rsa-key').textContent = privateKey;
+      } else {
+        $('sb-rsa-key').textContent = 'Failed to fetch private key.';
+      }
+    })();
+
+    await Promise.allSettled([meTask, keyTask]);
+
     loadedProfile = true;
   } catch (err) {
     console.error('Failed to load profile', err);
   }
 }
+
+hydrateAvatarFromToken();
+fetchUserProfile();
 
 // RSA Toggle Mask
 let isMasked = true;
@@ -415,31 +447,31 @@ function setupInlineEdit(field, inputId, editBtnId, statusId) {
       input.readOnly = true;
       btn.textContent = '✏️';
       if (status.textContent === '❌') {
-         // Revert if invalid
-         fetchUserProfile();
-         return;
+        // Revert if invalid
+        fetchUserProfile();
+        return;
       }
-      
+
       const newUsername = $('sb-username').value;
       const newEmail = $('sb-email').value;
-      
+
       try {
         const res = await fetch('/api/user/profile', {
           method: 'PUT',
-          headers: {'Content-Type': 'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: newUsername, email: newEmail })
         });
         const data = await res.json();
         if (res.ok && data.token) {
-           localStorage.setItem('token', data.token);
-           $('sb-avatar').textContent = newUsername.charAt(0).toUpperCase();
-           $('avatar-btn').textContent = newUsername.charAt(0).toUpperCase();
-           status.textContent = '✓';
-           setTimeout(() => status.textContent='', 2000);
+          localStorage.setItem('token', data.token);
+          $('sb-avatar').textContent = newUsername.charAt(0).toUpperCase();
+          $('avatar-btn').textContent = newUsername.charAt(0).toUpperCase();
+          status.textContent = '✓';
+          setTimeout(() => status.textContent = '', 2000);
         } else {
-           throw new Error('Update failed');
+          throw new Error('Update failed');
         }
-      } catch(err) {
+      } catch (err) {
         status.textContent = '❌';
       }
     }
@@ -448,23 +480,23 @@ function setupInlineEdit(field, inputId, editBtnId, statusId) {
   input.addEventListener('input', () => {
     clearTimeout(timeout);
     status.innerHTML = '<span class="step-spinner" style="display:inline-block; border-color:var(--text-3); border-top-color:var(--blue); width:12px; height:12px; margin-top:5px;"></span>';
-    
+
     timeout = setTimeout(async () => {
       const val = input.value.trim();
-      if (!val || (field==='email' && !val.includes('@'))) {
-         status.textContent = '❌';
-         return;
+      if (!val || (field === 'email' && !val.includes('@'))) {
+        status.textContent = '❌';
+        return;
       }
-      
+
       try {
         const res = await fetch('/api/user/validate', {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ field, value: val })
         });
         const { available } = await res.json();
         status.textContent = available ? '✅' : '❌';
-      } catch(e) {
+      } catch (e) {
         status.textContent = '❌';
       }
     }, 500);
@@ -474,7 +506,7 @@ function setupInlineEdit(field, inputId, editBtnId, statusId) {
 setupInlineEdit('username', 'sb-username', 'sb-username-edit', 'sb-username-status');
 setupInlineEdit('email', 'sb-email', 'sb-email-edit', 'sb-email-status');
 
-window.togglePwd = function(inputId, btnEl) {
+window.togglePwd = function (inputId, btnEl) {
   const input = document.getElementById(inputId);
   if (input.type === 'password') {
     input.type = 'text';
@@ -504,7 +536,7 @@ $('sb-pwd-form').addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentPassword, newPassword })
     });
-    
+
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to update');
 
