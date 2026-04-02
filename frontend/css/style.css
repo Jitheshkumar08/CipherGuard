@@ -813,6 +813,8 @@ body {
   cursor: pointer;
   border: 2px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s var(--ease);
+  scale: 1.35;
+  margin: 15px;
 }
 
 .profile-avatar-btn:hover {
@@ -822,7 +824,10 @@ body {
 
 .sidebar-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   z-index: 100;
@@ -838,7 +843,9 @@ body {
 
 .sidebar {
   position: fixed;
-  top: 0; right: -400px; bottom: 0;
+  top: 0;
+  right: -400px;
+  bottom: 0;
   width: 400px;
   max-width: 100%;
   background: var(--surface);
@@ -861,13 +868,14 @@ body {
   align-items: center;
   text-align: center;
   border-bottom: 1px solid var(--glass-border);
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.02);
   position: relative;
 }
 
 .sidebar-close {
   position: absolute;
-  top: 15px; left: 15px;
+  top: 15px;
+  left: 15px;
   background: transparent;
   border: none;
   color: var(--text-3);
@@ -893,7 +901,7 @@ body {
   font-size: 26px;
   font-weight: 600;
   margin-bottom: 1rem;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .sidebar-name {
@@ -926,13 +934,33 @@ body {
   margin-bottom: 1rem;
 }
 
-.sb-form-group { margin-bottom: 1rem; }
-.sb-form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-2); font-size: 0.85rem; }
-.sb-form-group input { width: 100%; padding: 0.65rem; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); color: #fff; }
-.sb-form-group input:focus { outline: none; border-color: var(--blue); }
+.sb-form-group {
+  margin-bottom: 1rem;
+}
+
+.sb-form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-2);
+  font-size: 0.85rem;
+}
+
+.sb-form-group input {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+}
+
+.sb-form-group input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
 
 .rsa-box {
-  background: rgba(0,0,0,0.4);
+  background: rgba(0, 0, 0, 0.4);
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   padding: 1rem;
@@ -968,16 +996,21 @@ body {
 /* ── Editable Profile UI ── */
 .avatar-edit-btn {
   position: absolute;
-  bottom: 0; right: 0;
+  bottom: 0;
+  right: 0;
   background: var(--surface);
   border: 1px solid var(--glass-border);
   border-radius: 50%;
-  width: 24px; height: 24px;
-  display: flex; align-items: center; justify-content: center;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 10px;
   cursor: pointer;
   color: var(--text-2);
   transition: all 0.2s;
+
 }
 
 .avatar-edit-btn:hover {
@@ -1032,7 +1065,8 @@ body {
 
 .inline-edit-icon {
   position: absolute;
-  right: 8px; top: 50%;
+  right: 8px;
+  top: 50%;
   transform: translateY(-50%);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1049,7 +1083,7 @@ body {
   color: var(--text-2);
 }
 
-.inline-edit-input:not([readonly]) + .inline-edit-icon {
+.inline-edit-input:not([readonly])+.inline-edit-icon {
   opacity: 1;
   background: var(--blue-dim);
   border-color: var(--blue);
@@ -1066,7 +1100,8 @@ body {
 
 .validation-status {
   position: absolute;
-  left: -20px; top: 50%;
+  left: -20px;
+  top: 50%;
   transform: translateY(-50%);
   font-size: 14px;
 }
@@ -1148,6 +1183,20 @@ body {
   .header {
     flex-direction: column;
     align-items: flex-start;
+    position: relative;
+    padding-right: 3.25rem;
+  }
+
+  .header-badges {
+    width: 100%;
+  }
+
+  #avatar-btn.profile-avatar-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 0;
+    margin-left: 0 !important;
+    scale: 1.5;
   }
 
   .about-pipeline {
