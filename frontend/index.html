@@ -35,6 +35,7 @@
         <span class="layer-badge b-des">3DES</span>
         <span class="layer-sep">→</span>
         <span class="layer-badge b-rsa">RSA-2048</span>
+        <div class="profile-avatar-btn" id="avatar-btn" style="margin-left: 1rem;" title="User Profile">U</div>
       </div>
     </header>
 
@@ -355,6 +356,88 @@
     </main>
   </div>
 
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" id="sb-overlay"></div>
+
+  <!-- Profile Sidebar -->
+  <div class="sidebar" id="profile-sidebar">
+    <div class="sidebar-header">
+      <button class="sidebar-close" id="sb-close">&times;</button>
+      <div class="sidebar-avatar-wrap" style="position:relative; margin-bottom:1rem;">
+        <div class="sidebar-avatar" id="sb-avatar" style="margin-bottom:0;">U</div>
+        <button class="avatar-edit-btn" title="Change Avatar">✏️</button>
+      </div>
+
+      <div class="inline-edit-group">
+        <input type="text" id="sb-username" class="inline-edit-input name-input" value="Loading..." readonly>
+        <button class="inline-edit-icon" id="sb-username-edit" type="button">✏️</button>
+        <span id="sb-username-status" class="validation-status"></span>
+      </div>
+
+      <div class="inline-edit-group">
+        <input type="email" id="sb-email" class="inline-edit-input email-input" value="loading@mlefps.com" readonly>
+        <button class="inline-edit-icon" id="sb-email-edit" type="button">✏️</button>
+        <span id="sb-email-status" class="validation-status"></span>
+      </div>
+
+      <!-- Logout inserted right under email -->
+      <div style="margin-top: 1.5rem; width: 100%;">
+        <button class="btn-danger" onclick="logout()" style="width: 100%; border: 1px solid rgba(248, 113, 113, 0.5); padding: 10px;">Logout</button>
+      </div>
+    </div>
+    
+    <div class="sidebar-content">
+      <!-- Password Update Section -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Security & Password</div>
+        <form id="sb-pwd-form">
+          <div class="sb-form-group">
+            <label>Current Password</label>
+            <div style="position:relative;">
+              <input type="password" id="sb-current-pwd" required style="padding-right:32px;">
+              <button type="button" class="inline-edit-icon" onclick="togglePwd('sb-current-pwd', this)" style="opacity:0.7">👁</button>
+            </div>
+          </div>
+          <div class="sb-form-group">
+            <label>New Password</label>
+            <div style="position:relative;">
+              <input type="password" id="sb-new-pwd" required minlength="8" style="padding-right:32px;">
+              <button type="button" class="inline-edit-icon" onclick="togglePwd('sb-new-pwd', this)" style="opacity:0.7">👁</button>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" id="sb-pwd-btn">Update Password</button>
+          <div id="sb-pwd-msg" style="margin-top: 0.75rem; font-size: 0.85rem;"></div>
+        </form>
+      </div>
+
+      <!-- Private Key Section -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Your RSA-2048 Private Key</div>
+        <div class="rsa-box masked" id="sb-rsa-key">Loading private key...</div>
+        <div class="rsa-actions">
+          <button class="btn-outline" id="sb-rsa-toggle" type="button">
+            <span id="sb-rsa-icon">👁</span> Reveal
+          </button>
+          <button class="btn-outline" id="sb-rsa-copy" type="button">
+            📋 Copy Key
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    if (!localStorage.getItem('token')) {
+        window.location.href = 'login.html';
+    } else {
+        function logout() {
+            localStorage.removeItem('token');
+            sessionStorage.removeItem('mlefps_pass');
+            window.location.href = 'login.html';
+        }
+    }
+  </script>
   <script src="js/app.js"></script>
 </body>
 
