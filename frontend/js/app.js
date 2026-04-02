@@ -314,3 +314,208 @@ function triggerDownload(blob, filename) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SIDEBAR LOGIC
+// ══════════════════════════════════════════════════════════════════════════════
+
+const sbOverlay = $('sb-overlay');
+const sbSidebar = $('profile-sidebar');
+let loadedProfile = false;
+let userRsaKey = '';
+
+function toggleSidebar(showOrHide) {
+  if (showOrHide) {
+    sbOverlay.classList.add('open');
+    sbSidebar.classList.add('open');
+    if (!loadedProfile) fetchUserProfile();
+  } else {
+    sbOverlay.classList.remove('open');
+    sbSidebar.classList.remove('open');
+  }
+}
+
+$('avatar-btn').addEventListener('click', () => toggleSidebar(true));
+$('sb-close').addEventListener('click', () => toggleSidebar(false));
+sbOverlay.addEventListener('click', () => toggleSidebar(false));
+
+async function fetchUserProfile() {
+  try {
+    // Fetch basic details
+    const resMe = await fetch('/api/user/me');
+    if (resMe.ok) {
+      const { username, email } = await resMe.json();
+      $('sb-username').value = username;
+      $('sb-email').value = email;
+      $('sb-avatar').textContent = username.charAt(0).toUpperCase();
+      $('avatar-btn').textContent = username.charAt(0).toUpperCase();
+    }
+
+    // Fetch private key
+    const resKey = await fetch('/api/user/private-key');
+    if (resKey.ok) {
+      const { privateKey } = await resKey.json();
+      userRsaKey = privateKey;
+      $('sb-rsa-key').textContent = privateKey;
+    } else {
+      $('sb-rsa-key').textContent = 'Failed to fetch private key.';
+    }
+    
+    loadedProfile = true;
+  } catch (err) {
+    console.error('Failed to load profile', err);
+  }
+}
+
+// RSA Toggle Mask
+let isMasked = true;
+$('sb-rsa-toggle').addEventListener('click', () => {
+  isMasked = !isMasked;
+  if (isMasked) {
+    $('sb-rsa-key').classList.add('masked');
+    $('sb-rsa-icon').textContent = '👁';
+    $('sb-rsa-toggle').childNodes[2].textContent = ' Reveal';
+  } else {
+    $('sb-rsa-key').classList.remove('masked');
+    $('sb-rsa-icon').textContent = '🙈';
+    $('sb-rsa-toggle').childNodes[2].textContent = ' Hide';
+  }
+});
+
+// RSA Copy Key
+$('sb-rsa-copy').addEventListener('click', async () => {
+  if (!userRsaKey) return;
+  try {
+    await navigator.clipboard.writeText(userRsaKey);
+    const originalText = $('sb-rsa-copy').innerHTML;
+    $('sb-rsa-copy').innerHTML = '✓ Copied!';
+    setTimeout(() => {
+      $('sb-rsa-copy').innerHTML = originalText;
+    }, 2000);
+  } catch (err) {
+    alert('Failed to copy');
+  }
+});
+
+// Inline Edit Logic & Validation
+function setupInlineEdit(field, inputId, editBtnId, statusId) {
+  const input = $(inputId);
+  const btn = $(editBtnId);
+  const status = $(statusId);
+  let timeout;
+
+  btn.addEventListener('click', async () => {
+    if (input.readOnly) {
+      input.readOnly = false;
+      input.focus();
+      btn.textContent = '💾';
+      status.textContent = '';
+    } else {
+      // Save
+      input.readOnly = true;
+      btn.textContent = '✏️';
+      if (status.textContent === '❌') {
+         // Revert if invalid
+         fetchUserProfile();
+         return;
+      }
+      
+      const newUsername = $('sb-username').value;
+      const newEmail = $('sb-email').value;
+      
+      try {
+        const res = await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ username: newUsername, email: newEmail })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+           localStorage.setItem('token', data.token);
+           $('sb-avatar').textContent = newUsername.charAt(0).toUpperCase();
+           $('avatar-btn').textContent = newUsername.charAt(0).toUpperCase();
+           status.textContent = '✓';
+           setTimeout(() => status.textContent='', 2000);
+        } else {
+           throw new Error('Update failed');
+        }
+      } catch(err) {
+        status.textContent = '❌';
+      }
+    }
+  });
+
+  input.addEventListener('input', () => {
+    clearTimeout(timeout);
+    status.innerHTML = '<span class="step-spinner" style="display:inline-block; border-color:var(--text-3); border-top-color:var(--blue); width:12px; height:12px; margin-top:5px;"></span>';
+    
+    timeout = setTimeout(async () => {
+      const val = input.value.trim();
+      if (!val || (field==='email' && !val.includes('@'))) {
+         status.textContent = '❌';
+         return;
+      }
+      
+      try {
+        const res = await fetch('/api/user/validate', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ field, value: val })
+        });
+        const { available } = await res.json();
+        status.textContent = available ? '✅' : '❌';
+      } catch(e) {
+        status.textContent = '❌';
+      }
+    }, 500);
+  });
+}
+
+setupInlineEdit('username', 'sb-username', 'sb-username-edit', 'sb-username-status');
+setupInlineEdit('email', 'sb-email', 'sb-email-edit', 'sb-email-status');
+
+window.togglePwd = function(inputId, btnEl) {
+  const input = document.getElementById(inputId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btnEl.textContent = '🙈';
+    btnEl.style.opacity = '1';
+  } else {
+    input.type = 'password';
+    btnEl.textContent = '👁';
+    btnEl.style.opacity = '0.7';
+  }
+};
+
+$('sb-pwd-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const currentPassword = $('sb-current-pwd').value;
+  const newPassword = $('sb-new-pwd').value;
+  const btn = $('sb-pwd-btn');
+  const msg = $('sb-pwd-msg');
+
+  btn.disabled = true;
+  msg.textContent = 'Updating and re-encrypting keys...';
+  msg.style.color = 'var(--blue)';
+
+  try {
+    const res = await fetch('/api/user/password', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update');
+
+    msg.textContent = 'Password updated successfully!';
+    msg.style.color = 'var(--green)';
+    sessionStorage.setItem('mlefps_pass', newPassword);
+    e.target.reset();
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.style.color = 'var(--red)';
+  } finally {
+    btn.disabled = false;
+  }
+});
