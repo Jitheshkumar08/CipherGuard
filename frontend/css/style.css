@@ -798,6 +798,279 @@ body {
   flex-shrink: 0;
 }
 
+/* ── Sidebar & Profile Avatar ── */
+.profile-avatar-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s var(--ease);
+}
+
+.profile-avatar-btn:hover {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s var(--ease);
+}
+
+.sidebar-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0; right: -400px; bottom: 0;
+  width: 400px;
+  max-width: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--glass-border);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+  z-index: 101;
+  transition: right 0.4s var(--ease);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.open {
+  right: 0;
+}
+
+.sidebar-header {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-bottom: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.02);
+  position: relative;
+}
+
+.sidebar-close {
+  position: absolute;
+  top: 15px; left: 15px;
+  background: transparent;
+  border: none;
+  color: var(--text-3);
+  font-size: 24px;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 5px;
+}
+
+.sidebar-close:hover {
+  color: var(--text-1);
+}
+
+.sidebar-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--blue));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.sidebar-name {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.sidebar-email {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.sidebar-content {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.sidebar-section {
+  margin-bottom: 2rem;
+}
+
+.sidebar-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin-bottom: 1rem;
+}
+
+.sb-form-group { margin-bottom: 1rem; }
+.sb-form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-2); font-size: 0.85rem; }
+.sb-form-group input { width: 100%; padding: 0.65rem; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); color: #fff; }
+.sb-form-group input:focus { outline: none; border-color: var(--blue); }
+
+.rsa-box {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--amber);
+  word-break: break-all;
+  height: 120px;
+  overflow-y: auto;
+  margin-bottom: 0.75rem;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-3) transparent;
+}
+
+.rsa-box.masked {
+  color: transparent;
+  text-shadow: 0 0 8px rgba(245, 166, 35, 0.5);
+  user-select: none;
+}
+
+.rsa-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rsa-actions button {
+  flex: 1;
+  padding: 8px;
+  font-size: 12px;
+}
+
+/* ── Editable Profile UI ── */
+.avatar-edit-btn {
+  position: absolute;
+  bottom: 0; right: 0;
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  cursor: pointer;
+  color: var(--text-2);
+  transition: all 0.2s;
+}
+
+.avatar-edit-btn:hover {
+  background: var(--blue-dim);
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
+.inline-edit-group {
+  position: relative;
+  width: 100%;
+  max-width: 240px;
+  margin: 0 auto 0.5rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.inline-edit-group:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.inline-edit-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--text-1);
+  text-align: center;
+  padding: 6px 32px 6px 12px;
+  font-family: inherit;
+  transition: all 0.2s var(--ease);
+}
+
+.inline-edit-input.name-input {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+.inline-edit-input.email-input {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.inline-edit-input:not([readonly]) {
+  background: var(--surface);
+  border-color: rgba(79, 143, 255, 0.4);
+  box-shadow: 0 0 0 2px rgba(79, 143, 255, 0.15);
+  color: #fff;
+  outline: none;
+}
+
+.inline-edit-icon {
+  position: absolute;
+  right: 8px; top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+  opacity: 0;
+  transition: all 0.2s;
+  color: var(--text-2);
+}
+
+.inline-edit-input:not([readonly]) + .inline-edit-icon {
+  opacity: 1;
+  background: var(--blue-dim);
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.inline-edit-group:hover .inline-edit-icon {
+  opacity: 1;
+}
+
+.inline-edit-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.validation-status {
+  position: absolute;
+  left: -20px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+}
+
 .hex-format {
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
