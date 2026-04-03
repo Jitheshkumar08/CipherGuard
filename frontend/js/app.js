@@ -456,13 +456,20 @@ async function fetchUserProfile() {
       setFieldStatus('sb-email-status', '', '');
     }
 
-    const resKey = await fetch('/api/user/private-key');
-    if (resKey.ok) {
-      const { privateKey } = await resKey.json();
-      userRsaKey = privateKey;
-      $('sb-rsa-key').textContent = privateKey;
+    const password = sessionStorage.getItem('mlefps_pass');
+    if (!password) {
+      userRsaKey = '';
+      $('sb-rsa-key').textContent = 'Private key locked for this session. Re-enter your password to unlock it.';
     } else {
-      $('sb-rsa-key').textContent = 'Failed to fetch private key.';
+      const resKey = await fetch('/api/user/private-key');
+      if (resKey.ok) {
+        const { privateKey } = await resKey.json();
+        userRsaKey = privateKey;
+        $('sb-rsa-key').textContent = privateKey;
+      } else {
+        const err = await resKey.json().catch(() => ({}));
+        $('sb-rsa-key').textContent = err.error || 'Failed to fetch private key.';
+      }
     }
 
     isMasked = true;

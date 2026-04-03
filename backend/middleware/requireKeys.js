@@ -8,7 +8,7 @@ module.exports = async (req, res, next) => {
         return res.status(401).json({ error: 'User must be authenticated first.' });
     }
 
-    const password = req.body.password || req.headers['x-user-password'];
+    const password = req.body?.password || req.headers['x-user-password'];
     if (!password) {
         return res.status(400).json({ error: 'Password is required to unlock encryption keys.' });
     }
@@ -25,10 +25,10 @@ module.exports = async (req, res, next) => {
 
         // Unlock keys
         const keys = unlockUserKeys(userRow, password);
-        
+
         // Attach to request
         req.userKeys = keys;
-        
+
         next();
     } catch (e) {
         console.error('[requireKeys Middleware]', e);
