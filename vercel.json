@@ -1,6 +1,10 @@
 {
     "rewrites": [
         {
+            "source": "/",
+            "destination": "/landingPage.html"
+        },
+        {
             "source": "/api/:path*",
             "destination": "https://cipherguard-mnks.onrender.com/api/:path*"
         }
