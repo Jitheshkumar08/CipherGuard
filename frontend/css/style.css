@@ -169,6 +169,37 @@ body {
   font-size: 12px;
 }
 
+/* ── Home Button ── */
+.home-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 20px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-1);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+
+
+.home-btn:hover {
+  background: var(--glass-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--blue);
+  transform: scale(1.05);
+}
+
+.home-btn:active {
+  transform: scale(0.95);
+}
+
 /* ── Nav ── */
 .nav {
   display: flex;
