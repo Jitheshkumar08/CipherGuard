@@ -361,67 +361,144 @@
 
   <!-- Profile Sidebar -->
   <div class="sidebar" id="profile-sidebar">
-    <div class="sidebar-header">
-      <button class="sidebar-close" id="sb-close">&times;</button>
-      <div class="sidebar-avatar-wrap" style="position:relative; margin-bottom:1rem;">
-        <div class="sidebar-avatar" id="sb-avatar" style="margin-bottom:0;">U</div>
-        <button class="avatar-edit-btn" title="Change Avatar">✏️</button>
+    <div class="sidebar-shell">
+      <div class="sidebar-header">
+        <h2 class="sidebar-title">Profile Page</h2>
+        <button class="sidebar-close" id="sb-close" aria-label="Close settings">&times;</button>
       </div>
 
-      <div class="inline-edit-group">
-        <input type="text" id="sb-username" class="inline-edit-input name-input" value="Loading..." readonly>
-        <button class="inline-edit-icon" id="sb-username-edit" type="button">✏️</button>
-        <span id="sb-username-status" class="validation-status"></span>
-      </div>
-
-      <div class="inline-edit-group">
-        <input type="email" id="sb-email" class="inline-edit-input email-input" value="loading@mlefps.com" readonly>
-        <button class="inline-edit-icon" id="sb-email-edit" type="button">✏️</button>
-        <span id="sb-email-status" class="validation-status"></span>
-      </div>
-
-      <!-- Logout inserted right under email -->
-      <div style="margin-top: 1.5rem; width: 100%;">
-        <button class="btn-danger" onclick="logout()" style="width: 100%; border: 1px solid rgba(248, 113, 113, 0.5); padding: 10px;">Logout</button>
-      </div>
-    </div>
-    
-    <div class="sidebar-content">
-      <!-- Password Update Section -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">Security & Password</div>
-        <form id="sb-pwd-form">
-          <div class="sb-form-group">
-            <label>Current Password</label>
-            <div style="position:relative;">
-              <input type="password" id="sb-current-pwd" required style="padding-right:32px;">
-              <button type="button" class="inline-edit-icon" onclick="togglePwd('sb-current-pwd', this)" style="opacity:0.7">👁</button>
+      <div class="sidebar-settings-wrap">
+        <div class="sidebar-account-card">
+          <div class="sidebar-account-row">
+            <div class="avatar-circle sidebar-avatar" id="sb-avatar">U</div>
+            <div class="sidebar-account-copy">
+              <div class="sidebar-name" id="sb-display-username">Loading…</div>
+              <div class="sidebar-email" id="sb-display-email">—</div>
             </div>
           </div>
-          <div class="sb-form-group">
-            <label>New Password</label>
-            <div style="position:relative;">
-              <input type="password" id="sb-new-pwd" required minlength="8" style="padding-right:32px;">
-              <button type="button" class="inline-edit-icon" onclick="togglePwd('sb-new-pwd', this)" style="opacity:0.7">👁</button>
-            </div>
-          </div>
-          <button type="submit" class="btn-primary" id="sb-pwd-btn">Update Password</button>
-          <div id="sb-pwd-msg" style="margin-top: 0.75rem; font-size: 0.85rem;"></div>
-        </form>
-      </div>
-
-      <!-- Private Key Section -->
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">Your RSA-2048 Private Key</div>
-        <div class="rsa-box masked" id="sb-rsa-key">Loading private key...</div>
-        <div class="rsa-actions">
-          <button class="btn-outline" id="sb-rsa-toggle" type="button">
-            <span id="sb-rsa-icon">👁</span> Reveal
-          </button>
-          <button class="btn-outline" id="sb-rsa-copy" type="button">
-            📋 Copy Key
-          </button>
+          <button class="btn-danger sidebar-logout" id="sb-logout" type="button">Logout</button>
         </div>
+
+        <div class="settings-card">
+          <div class="section-header">
+            <div class="section-icon blue">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </div>
+            <div class="section-label">
+              <h3>Account Info</h3>
+              <p>Update your username and email address</p>
+            </div>
+          </div>
+
+          <form id="sb-profile-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="sb-new-username">Username</label>
+                <input class="form-input" type="text" id="sb-new-username" placeholder="Your username"
+                  autocomplete="username" />
+                <div class="field-status" id="sb-username-status"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="sb-new-email">Email Address</label>
+                <input class="form-input" type="email" id="sb-new-email" placeholder="you@example.com"
+                  autocomplete="email" />
+                <div class="field-status" id="sb-email-status"></div>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button class="btn-save" id="sb-profile-btn" type="submit">
+                <span class="spinner-sm" id="sb-profile-spinner"></span>
+                Save Changes
+              </button>
+              <div class="feedback-msg" id="sb-profile-msg"></div>
+            </div>
+          </form>
+        </div>
+
+        <div class="settings-card">
+          <div class="section-header">
+            <div class="section-icon purple">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <div class="section-label">
+              <h3>Password</h3>
+              <p>Change your account password</p>
+            </div>
+          </div>
+
+          <form id="sb-pwd-form">
+            <div class="form-group">
+              <label class="form-label" for="sb-current-pwd">Current Password</label>
+              <div style="position:relative;">
+                <input class="form-input" type="password" id="sb-current-pwd" placeholder="Enter current password"
+                  autocomplete="current-password" style="padding-right:32px;">
+                <button type="button" class="inline-edit-icon" onclick="togglePwd('sb-current-pwd', this)"
+                  style="opacity:0.7">👁</button>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="sb-new-pwd">New Password</label>
+                <div style="position:relative;">
+                  <input class="form-input" type="password" id="sb-new-pwd" placeholder="Min 8 characters"
+                    autocomplete="new-password" style="padding-right:32px;">
+                  <button type="button" class="inline-edit-icon" onclick="togglePwd('sb-new-pwd', this)"
+                    style="opacity:0.7">👁</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="sb-confirm-pwd">Confirm New Password</label>
+                <input class="form-input" type="password" id="sb-confirm-pwd" placeholder="Repeat new password"
+                  autocomplete="new-password" />
+              </div>
+            </div>
+            <p class="input-hint">Password must be at least 8 characters long.</p>
+
+            <div class="action-row">
+              <button class="btn-save" id="sb-pwd-btn" type="submit">
+                <span class="spinner-sm" id="sb-pwd-spinner"></span>
+                Update Password
+              </button>
+              <div class="feedback-msg" id="sb-pwd-msg"></div>
+            </div>
+          </form>
+        </div>
+
+        <div class="settings-card">
+          <div class="section-header">
+            <div class="section-icon blue" style="background: var(--amber-dim); color: var(--amber);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path
+                  d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+              </svg>
+            </div>
+            <div class="section-label">
+              <h3>Encryption Key</h3>
+              <p>RSA-2048 key pair bound to your account</p>
+            </div>
+          </div>
+
+          <p style="font-size:0.82rem; color:var(--text-2); line-height:1.65; margin-bottom:1rem;">
+            Your encryption key is a unique RSA-2048 key pair used to wrap and protect all encrypted files. This key is
+            derived from and securely bound to your password.
+          </p>
+
+          <div class="key-box masked" id="sb-rsa-key">Loading private key...</div>
+          <div class="key-actions">
+            <button class="btn-outline" id="sb-rsa-toggle" type="button">
+              <span id="sb-rsa-icon">👁</span><span id="sb-rsa-label"> Reveal</span>
+            </button>
+            <button class="btn-outline" id="sb-rsa-copy" type="button">📋 Copy Key</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -429,13 +506,13 @@
   <script src="js/api.js"></script>
   <script>
     if (!localStorage.getItem('token')) {
-        window.location.href = 'login.html';
+      window.location.href = 'login.html';
     } else {
-        function logout() {
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('mlefps_pass');
-            window.location.href = 'login.html';
-        }
+      function logout() {
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('mlefps_pass');
+        window.location.href = 'login.html';
+      }
     }
   </script>
   <script src="js/app.js"></script>
