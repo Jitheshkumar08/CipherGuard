@@ -29,6 +29,9 @@ app.use(express.json());
 // Optional monolith mode: serve frontend from backend.
 // Keep disabled for Render (API) + Vercel (frontend) split deployments.
 if (process.env.SERVE_FRONTEND === 'true') {
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'landingPage.html'));
+  });
   app.use(express.static(path.join(__dirname, '..', 'frontend')));
 }
 
@@ -46,9 +49,9 @@ app.get('/api/health', (req, res) => {
 });
 
 if (process.env.SERVE_FRONTEND === 'true') {
-  // Serve index.html for all other routes (SPA fallback)
+  // Serve landing page for unknown routes
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'frontend', 'landingPage.html'));
   });
 }
 
