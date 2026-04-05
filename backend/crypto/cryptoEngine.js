@@ -1,23 +1,33 @@
 'use strict';
 
 const crypto = require('crypto');
-const forge  = require('node-forge');
+const forge = require('node-forge');
 
-const MLENC_MAGIC   = Buffer.from('MLENC001', 'ascii');
-const MAGIC_LEN     = 8;
-const KEY_LEN_SIZE  = 4;
+const MLENC_MAGIC = Buffer.from('MLENC001', 'ascii');
+const MAGIC_LEN = 8;
+const KEY_LEN_SIZE = 4;
 const NAME_LEN_SIZE = 2;
-const MIN_HEADER    = MAGIC_LEN + KEY_LEN_SIZE + NAME_LEN_SIZE;
+const MIN_HEADER = MAGIC_LEN + KEY_LEN_SIZE + NAME_LEN_SIZE;
 
 const AES_KEY = 32, AES_IV = 16, DES_KEY = 24, DES_IV = 8;
 const KEY_BUNDLE_SIZE = AES_KEY + AES_IV + DES_KEY + DES_IV; // 80 bytes
 
+function withStep(step, err) {
+  if (err && typeof err === 'object') {
+    err.step = step;
+    return err;
+  }
+  const wrapped = new Error(String(err));
+  wrapped.step = step;
+  return wrapped;
+}
+
 function generateSymmetricKeys() {
   return {
     aesKey: crypto.randomBytes(AES_KEY),
-    aesIv:  crypto.randomBytes(AES_IV),
+    aesIv: crypto.randomBytes(AES_IV),
     desKey: crypto.randomBytes(DES_KEY),
-    desIv:  crypto.randomBytes(DES_IV),
+    desIv: crypto.randomBytes(DES_IV),
   };
 }
 
@@ -26,7 +36,7 @@ function generateRsaKeyPair() {
     forge.pki.rsa.generateKeyPair({ bits: 2048, workers: -1 }, (err, keypair) => {
       if (err) return reject(new Error('RSA key generation failed: ' + err.message));
       resolve({
-        publicKeyPem:  forge.pki.publicKeyToPem(keypair.publicKey),
+        publicKeyPem: forge.pki.publicKeyToPem(keypair.publicKey),
         privateKeyPem: forge.pki.privateKeyToPem(keypair.privateKey),
       });
     });
@@ -57,9 +67,9 @@ function desDecrypt(data, key, iv) {
 
 function rsaEncryptKeys(keys, publicKeyPem) {
   const publicKey = forge.pki.publicKeyFromPem(publicKeyPem);
-  const payload   = Buffer.concat([keys.aesKey, keys.aesIv, keys.desKey, keys.desIv]);
+  const payload = Buffer.concat([keys.aesKey, keys.aesIv, keys.desKey, keys.desIv]);
   const forgeBytes = forge.util.binary.raw.encode(new Uint8Array(payload));
-  const encrypted  = publicKey.encrypt(forgeBytes, 'RSA-OAEP', { md: forge.md.sha256.create() });
+  const encrypted = publicKey.encrypt(forgeBytes, 'RSA-OAEP', { md: forge.md.sha256.create() });
   return Buffer.from(forge.util.binary.raw.decode(encrypted));
 }
 
@@ -72,16 +82,16 @@ function rsaDecryptKeys(encryptedKeyBuf, privateKeyPem) {
   const buf = Buffer.from(forge.util.binary.raw.decode(decrypted));
   if (buf.length !== KEY_BUNDLE_SIZE) throw new Error(`Key bundle size mismatch: got ${buf.length}, expected ${KEY_BUNDLE_SIZE}`);
   return {
-    aesKey: buf.slice( 0, 32),
-    aesIv:  buf.slice(32, 48),
+    aesKey: buf.slice(0, 32),
+    aesIv: buf.slice(32, 48),
     desKey: buf.slice(48, 72),
-    desIv:  buf.slice(72, 80),
+    desIv: buf.slice(72, 80),
   };
 }
 
 function buildMlencFile(ciphertext, encryptedKeys, originalName) {
-  const nameBuf    = Buffer.from(originalName, 'utf8');
-  const keyLenBuf  = Buffer.allocUnsafe(4); keyLenBuf.writeUInt32BE(encryptedKeys.length, 0);
+  const nameBuf = Buffer.from(originalName, 'utf8');
+  const keyLenBuf = Buffer.allocUnsafe(4); keyLenBuf.writeUInt32BE(encryptedKeys.length, 0);
   const nameLenBuf = Buffer.allocUnsafe(2); nameLenBuf.writeUInt16BE(nameBuf.length, 0);
   return Buffer.concat([MLENC_MAGIC, keyLenBuf, encryptedKeys, nameLenBuf, nameBuf, ciphertext]);
 }
@@ -127,18 +137,63 @@ function parseMlencFile(buf) {
 async function encryptImage(imageBuffer, originalName, publicKeyPem) {
   if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) throw new Error('Empty image buffer');
   const keys = generateSymmetricKeys();
-  const layer1 = aesEncrypt(imageBuffer, keys.aesKey, keys.aesIv);
-  const layer2 = desEncrypt(layer1,      keys.desKey, keys.desIv);
-  const encryptedKeys = rsaEncryptKeys(keys, publicKeyPem);
-  return buildMlencFile(layer2, encryptedKeys, originalName);
+  let layer1;
+  try {
+    layer1 = aesEncrypt(imageBuffer, keys.aesKey, keys.aesIv);
+  } catch (err) {
+    throw withStep(1, err);
+  }
+
+  let layer2;
+  try {
+    layer2 = desEncrypt(layer1, keys.desKey, keys.desIv);
+  } catch (err) {
+    throw withStep(2, err);
+  }
+
+  let encryptedKeys;
+  try {
+    encryptedKeys = rsaEncryptKeys(keys, publicKeyPem);
+  } catch (err) {
+    throw withStep(3, err);
+  }
+
+  try {
+    return buildMlencFile(layer2, encryptedKeys, originalName);
+  } catch (err) {
+    throw withStep(4, err);
+  }
 }
 
 async function decryptImage(mlencBuffer, privateKeyPem) {
-  const { encryptedKeys, originalName, ciphertext } = parseMlencFile(mlencBuffer);
-  const keys = rsaDecryptKeys(encryptedKeys, privateKeyPem);
-  const layer1      = desDecrypt(ciphertext, keys.desKey, keys.desIv);
-  const imageBuffer = aesDecrypt(layer1,     keys.aesKey, keys.aesIv);
-  return { imageBuffer, originalName };
+  let parsed;
+  try {
+    parsed = parseMlencFile(mlencBuffer);
+  } catch (err) {
+    throw withStep(1, err);
+  }
+
+  let keys;
+  try {
+    keys = rsaDecryptKeys(parsed.encryptedKeys, privateKeyPem);
+  } catch (err) {
+    throw withStep(2, err);
+  }
+
+  let layer1;
+  try {
+    layer1 = desDecrypt(parsed.ciphertext, keys.desKey, keys.desIv);
+  } catch (err) {
+    throw withStep(3, err);
+  }
+
+  let imageBuffer;
+  try {
+    imageBuffer = aesDecrypt(layer1, keys.aesKey, keys.aesIv);
+  } catch (err) {
+    throw withStep(4, err);
+  }
+  return { imageBuffer, originalName: parsed.originalName };
 }
 
 module.exports = { generateRsaKeyPair, encryptImage, decryptImage };
