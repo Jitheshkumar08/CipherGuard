@@ -459,7 +459,10 @@ async function fetchUserProfile() {
     const password = sessionStorage.getItem('mlefps_pass');
     if (!password) {
       userRsaKey = '';
-      $('sb-rsa-key').textContent = 'Private key locked for this session. Re-enter your password to unlock it.';
+      $('sb-rsa-key').textContent = 'Private key locked for this session. Please re-login to unlock it.';
+      localStorage.removeItem('token');
+      window.location.href = 'login.html';
+      return;
     } else {
       const resKey = await fetch('/api/user/private-key');
       if (resKey.ok) {
