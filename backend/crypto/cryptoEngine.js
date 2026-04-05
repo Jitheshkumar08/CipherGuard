@@ -22,6 +22,10 @@ function withStep(step, err) {
   return wrapped;
 }
 
+function reportProgress(reporter, patch) {
+  if (typeof reporter === 'function') reporter(patch);
+}
+
 function generateSymmetricKeys() {
   return {
     aesKey: crypto.randomBytes(AES_KEY),
@@ -134,11 +138,12 @@ function parseMlencFile(buf) {
   return { encryptedKeys, originalName, ciphertext };
 }
 
-async function encryptImage(imageBuffer, originalName, publicKeyPem) {
+async function encryptImage(imageBuffer, originalName, publicKeyPem, reporter) {
   if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) throw new Error('Empty image buffer');
   const keys = generateSymmetricKeys();
   let layer1;
   try {
+    reportProgress(reporter, { stepIndex: 1, percent: 25, message: 'AES-256 encryption' });
     layer1 = aesEncrypt(imageBuffer, keys.aesKey, keys.aesIv);
   } catch (err) {
     throw withStep(1, err);
@@ -146,6 +151,7 @@ async function encryptImage(imageBuffer, originalName, publicKeyPem) {
 
   let layer2;
   try {
+    reportProgress(reporter, { stepIndex: 2, percent: 50, message: 'Triple-DES encryption' });
     layer2 = desEncrypt(layer1, keys.desKey, keys.desIv);
   } catch (err) {
     throw withStep(2, err);
@@ -153,21 +159,30 @@ async function encryptImage(imageBuffer, originalName, publicKeyPem) {
 
   let encryptedKeys;
   try {
+    reportProgress(reporter, { stepIndex: 3, percent: 75, message: 'RSA-2048 key wrapping' });
+    const rsaStart = Date.now();
     encryptedKeys = rsaEncryptKeys(keys, publicKeyPem);
+    reportProgress(reporter, {
+      stepIndex: 3,
+      percent: 75,
+      message: `RSA-2048 key wrapping (${Date.now() - rsaStart} ms)`,
+    });
   } catch (err) {
     throw withStep(3, err);
   }
 
   try {
+    reportProgress(reporter, { stepIndex: 4, percent: 100, message: 'Building .mlenc file' });
     return buildMlencFile(layer2, encryptedKeys, originalName);
   } catch (err) {
     throw withStep(4, err);
   }
 }
 
-async function decryptImage(mlencBuffer, privateKeyPem) {
+async function decryptImage(mlencBuffer, privateKeyPem, reporter) {
   let parsed;
   try {
+    reportProgress(reporter, { stepIndex: 1, percent: 25, message: 'Validating file header' });
     parsed = parseMlencFile(mlencBuffer);
   } catch (err) {
     throw withStep(1, err);
@@ -175,13 +190,21 @@ async function decryptImage(mlencBuffer, privateKeyPem) {
 
   let keys;
   try {
+    reportProgress(reporter, { stepIndex: 2, percent: 50, message: 'RSA-2048 key decryption' });
+    const rsaStart = Date.now();
     keys = rsaDecryptKeys(parsed.encryptedKeys, privateKeyPem);
+    reportProgress(reporter, {
+      stepIndex: 2,
+      percent: 50,
+      message: `RSA-2048 key decryption (${Date.now() - rsaStart} ms)`,
+    });
   } catch (err) {
     throw withStep(2, err);
   }
 
   let layer1;
   try {
+    reportProgress(reporter, { stepIndex: 3, percent: 75, message: 'Reversing Triple-DES layer' });
     layer1 = desDecrypt(parsed.ciphertext, keys.desKey, keys.desIv);
   } catch (err) {
     throw withStep(3, err);
@@ -189,6 +212,7 @@ async function decryptImage(mlencBuffer, privateKeyPem) {
 
   let imageBuffer;
   try {
+    reportProgress(reporter, { stepIndex: 4, percent: 100, message: 'Restoring original image' });
     imageBuffer = aesDecrypt(layer1, keys.aesKey, keys.aesIv);
   } catch (err) {
     throw withStep(4, err);

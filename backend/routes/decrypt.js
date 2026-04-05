@@ -10,6 +10,7 @@ const { decryptImage } = require('../crypto/cryptoEngine');
 const pool = require('../db/pool');
 const auth = require('../middleware/auth');
 const requireKeys = require('../middleware/requireKeys');
+const { resolveJob, createProgressReporter, completeJob, failJob } = require('../storage/jobStore');
 
 const router = express.Router();
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
@@ -57,16 +58,39 @@ function sendImage(res, imageBuffer, originalName) {
 router.post('/', auth, upload.single('encfile'), requireKeys, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No .mlenc file provided.' });
   const uploadedPath = req.file.path;
+  let job = null;
+  let progress = null;
+
+  const jobId = req.headers['x-job-id'];
+  const jobToken = req.headers['x-job-token'];
+  if (jobId || jobToken) {
+    try {
+      if (!jobId || !jobToken) {
+        return res.status(400).json({ error: 'Invalid progress job headers.' });
+      }
+      job = resolveJob(req);
+      progress = createProgressReporter(job.id);
+    } catch (err) {
+      return res.status(err.status || 400).json({ error: err.message });
+    }
+  }
 
   try {
     const mlencBuffer = fs.readFileSync(uploadedPath);
     const privateKeyPem = req.userKeys.privateKeyPem; // User-specific key
-    const { imageBuffer, originalName } = await decryptImage(mlencBuffer, privateKeyPem);
+    const { imageBuffer, originalName } = await decryptImage(mlencBuffer, privateKeyPem, progress);
     fs.unlinkSync(uploadedPath);
+    if (job) {
+      completeJob(job.id, 4, 'Decryption complete', {
+        originalName,
+        size: imageBuffer.length,
+      });
+    }
     sendImage(res, imageBuffer, originalName);
   } catch (err) {
     console.error('[Decrypt] Error:', err.message);
     if (fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
+    if (job) failJob(job.id, err.step || 4, err);
     res.status(400).json({ error: err.message, step: err.step || 4 });
   }
 });
@@ -87,7 +111,7 @@ router.get('/:fileId', auth, requireKeys, async (req, res) => {
 
     const mlencBuffer = fs.readFileSync(encPath);
     const privateKeyPem = req.userKeys.privateKeyPem; // User-specific key
-    const { imageBuffer, originalName } = await decryptImage(mlencBuffer, privateKeyPem);
+    const { imageBuffer, originalName } = await decryptImage(mlencBuffer, privateKeyPem, null);
     sendImage(res, imageBuffer, originalName);
   } catch (err) {
     console.error('[Decrypt] Error:', err.message);

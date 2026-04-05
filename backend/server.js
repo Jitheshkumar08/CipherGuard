@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 
 const authRouter = require('./routes/auth');
+const jobsRouter = require('./routes/jobs');
 const encryptRouter = require('./routes/encrypt');
 const decryptRouter = require('./routes/decrypt');
 const filesRouter = require('./routes/files');
@@ -61,6 +62,7 @@ if (process.env.SERVE_FRONTEND === 'true') {
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);
+app.use('/api/jobs', jobsRouter);
 app.use('/api/user', userRouter);
 app.use('/api/encrypt', encryptRouter);
 app.use('/api/decrypt', decryptRouter);

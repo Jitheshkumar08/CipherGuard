@@ -11,6 +11,7 @@ const { encryptImage } = require('../crypto/cryptoEngine');
 const pool = require('../db/pool');
 const auth = require('../middleware/auth');
 const requireKeys = require('../middleware/requireKeys');
+const { resolveJob, createProgressReporter, completeJob, failJob } = require('../storage/jobStore');
 
 const router = express.Router();
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
@@ -38,11 +39,27 @@ const upload = multer({
 router.post('/', auth, upload.single('image'), requireKeys, async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No image file provided.' });
   const uploadedPath = req.file.path;
+  let job = null;
+  let progress = null;
+
+  const jobId = req.headers['x-job-id'];
+  const jobToken = req.headers['x-job-token'];
+  if (jobId || jobToken) {
+    try {
+      if (!jobId || !jobToken) {
+        return res.status(400).json({ error: 'Invalid progress job headers.' });
+      }
+      job = resolveJob(req);
+      progress = createProgressReporter(job.id);
+    } catch (err) {
+      return res.status(err.status || 400).json({ error: err.message });
+    }
+  }
 
   try {
     const imageBuffer = fs.readFileSync(uploadedPath);
     const publicKeyPem = req.userKeys.publicKeyPem; // User-specific key
-    const mlencBuffer = await encryptImage(imageBuffer, req.file.originalname, publicKeyPem);
+    const mlencBuffer = await encryptImage(imageBuffer, req.file.originalname, publicKeyPem, progress);
 
     const fileId = uuidv4();
     const storedName = `${fileId}.mlenc`;
@@ -56,6 +73,15 @@ router.post('/', auth, upload.single('image'), requireKeys, async (req, res) => 
       [fileId, req.user.id, req.file.originalname, storedName, mlencBuffer.length]
     );
 
+    if (job) {
+      completeJob(job.id, 4, 'Encryption complete', {
+        fileId,
+        filename: storedName,
+        originalName: req.file.originalname,
+        encryptedSize: mlencBuffer.length,
+      });
+    }
+
     res.json({
       success: true,
       fileId,
@@ -67,6 +93,7 @@ router.post('/', auth, upload.single('image'), requireKeys, async (req, res) => 
   } catch (err) {
     console.error('[Encrypt] Error:', err.message);
     if (fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
+    if (job) failJob(job.id, err.step || 4, err);
     res.status(500).json({ error: 'Encryption failed: ' + err.message, step: err.step || 4 });
   }
 });

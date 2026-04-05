@@ -42,6 +42,56 @@ function resolveErrorStep(err, activeStepNum, mode) {
   return activeStepNum;
 }
 
+async function createProgressJob(kind) {
+  const res = await fetch('/api/jobs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind }),
+  });
+
+  if (!res.ok) {
+    throw new Error((await res.json().catch(() => ({}))).error || 'Failed to create progress job.');
+  }
+
+  return res.json();
+}
+
+function waitForJobStep(job, targetStep) {
+  return new Promise((resolve, reject) => {
+    const stream = new EventSource(`/api/jobs/${job.jobId}/events?token=${encodeURIComponent(job.jobToken)}`);
+    let settled = false;
+
+    const finish = (fn, value) => {
+      if (settled) return;
+      settled = true;
+      stream.close();
+      fn(value);
+    };
+
+    stream.onmessage = ev => {
+      let snapshot;
+      try {
+        snapshot = JSON.parse(ev.data);
+      } catch {
+        return;
+      }
+
+      if (snapshot.status === 'error') {
+        finish(reject, new Error(snapshot.error || snapshot.message || 'Progress job failed.'));
+        return;
+      }
+
+      if (snapshot.status === 'done' || Number(snapshot.stepIndex) > targetStep) {
+        finish(resolve, snapshot);
+      }
+    };
+
+    stream.onerror = () => {
+      finish(reject, new Error('Progress stream disconnected.'));
+    };
+  });
+}
+
 // ── Tab switching ──────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-tab').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -80,9 +130,11 @@ class StepController {
 
   // Animate through steps with realistic delays
   // steps: array of { id, label, duration }
-  async run(steps, apiCall) {
+  async run(steps, apiCall, options = {}) {
     const token = ++this.runToken;
     show($(this.prefix + '-progress'));
+    const realStepIndex = Number(options.realStepIndex) || null;
+    const realStepPromise = options.realStepPromise || null;
 
     // Mark all pending
     steps.forEach((s, i) => this.setState(i + 1, 'pending', token));
@@ -102,10 +154,17 @@ class StepController {
         const s = steps[i];
         this.setState(i + 1, 'active', token);
         this.setBar((elapsed / totalDuration) * 90, s.label + '...', token);
-        await delay(s.duration);
+        const stepStart = Date.now();
+        if (realStepPromise && realStepIndex === i + 1) {
+          await realStepPromise;
+        } else {
+          await delay(s.duration);
+        }
         if (cancelled || token !== this.runToken) return;
         this.setState(i + 1, 'done', token);
-        elapsed += s.duration;
+        elapsed += realStepPromise && realStepIndex === i + 1
+          ? Math.max(0, Date.now() - stepStart)
+          : s.duration;
       }
       if (cancelled || token !== this.runToken) return;
       // Last step waits for API to complete
@@ -203,6 +262,8 @@ $('enc-btn').addEventListener('click', async () => {
   encSteps.reset();
 
   try {
+    const progressJob = await createProgressJob('encrypt').catch(() => null);
+    const rsaStepPromise = progressJob ? waitForJobStep(progressJob, 3) : null;
     const result = await encSteps.run([
       { id: 's1', label: 'AES-256 encryption', duration: 600 },
       { id: 's2', label: 'Triple-DES encryption', duration: 600 },
@@ -211,7 +272,11 @@ $('enc-btn').addEventListener('click', async () => {
     ], async () => {
       const fd = new FormData();
       fd.append('image', encFile);
-      const res = await fetch('/api/encrypt', { method: 'POST', body: fd });
+      const headers = progressJob ? {
+        'x-job-id': progressJob.jobId,
+        'x-job-token': progressJob.jobToken,
+      } : undefined;
+      const res = await fetch('/api/encrypt', { method: 'POST', body: fd, headers });
       const data = await res.json();
       if (!res.ok) {
         const err = new Error(data.error || 'Encryption failed');
@@ -219,7 +284,7 @@ $('enc-btn').addEventListener('click', async () => {
         throw err;
       }
       return data;
-    });
+    }, { realStepIndex: 3, realStepPromise: rsaStepPromise });
 
     lastEncResult = result;
     $('enc-result-body').innerHTML =
@@ -285,6 +350,8 @@ $('dec-btn').addEventListener('click', async () => {
   }
 
   try {
+    const progressJob = await createProgressJob('decrypt').catch(() => null);
+    const rsaStepPromise = progressJob ? waitForJobStep(progressJob, 2) : null;
     const { blob, originalName } = await decSteps.run([
       { id: 's1', label: 'Validating file header', duration: 400 },
       { id: 's2', label: 'RSA-2048 key decryption', duration: 2100 },
@@ -293,7 +360,11 @@ $('dec-btn').addEventListener('click', async () => {
     ], async () => {
       const fd = new FormData();
       fd.append('encfile', decFile);
-      const res = await fetch('/api/decrypt', { method: 'POST', body: fd });
+      const headers = progressJob ? {
+        'x-job-id': progressJob.jobId,
+        'x-job-token': progressJob.jobToken,
+      } : undefined;
+      const res = await fetch('/api/decrypt', { method: 'POST', body: fd, headers });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Server error' }));
         const error = new Error(err.error || 'Decryption failed');
@@ -304,7 +375,7 @@ $('dec-btn').addEventListener('click', async () => {
       const rawName = res.headers.get('X-Original-Name') || 'decrypted_image';
       const originalName = decodeURIComponent(rawName);
       return { blob, originalName };
-    });
+    }, { realStepIndex: 2, realStepPromise: rsaStepPromise });
 
     lastDecResult = { blob, originalName };
     const imgUrl = URL.createObjectURL(blob);
