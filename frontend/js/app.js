@@ -206,7 +206,7 @@ $('enc-btn').addEventListener('click', async () => {
     const result = await encSteps.run([
       { id: 's1', label: 'AES-256 encryption', duration: 600 },
       { id: 's2', label: 'Triple-DES encryption', duration: 600 },
-      { id: 's3', label: 'RSA-2048 key wrapping', duration: 700 },
+      { id: 's3', label: 'RSA-2048 key wrapping', duration: 1400 },
       { id: 's4', label: 'Building .mlenc file', duration: 400 },
     ], async () => {
       const fd = new FormData();
@@ -287,7 +287,7 @@ $('dec-btn').addEventListener('click', async () => {
   try {
     const { blob, originalName } = await decSteps.run([
       { id: 's1', label: 'Validating file header', duration: 400 },
-      { id: 's2', label: 'RSA-2048 key decryption', duration: 800 },
+      { id: 's2', label: 'RSA-2048 key decryption', duration: 2100 },
       { id: 's3', label: 'Reversing Triple-DES layer', duration: 600 },
       { id: 's4', label: 'Restoring original image', duration: 500 },
     ], async () => {
