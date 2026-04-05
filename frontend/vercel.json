@@ -4,34 +4,29 @@
             "source": "/",
             "destination": "/home",
             "permanent": false
-        },
-        {
-            "source": "/home",
-            "destination": "/landingPage.html",
-            "permanent": false
-        },
-        {
-            "source": "/login",
-            "destination": "/login.html",
-            "permanent": false
-        },
-        {
-            "source": "/signup",
-            "destination": "/signup.html",
-            "permanent": false
-        },
-        {
-            "source": "/dashboard",
-            "destination": "/index.html",
-            "permanent": false
-        },
-        {
-            "source": "/settings",
-            "destination": "/settings.html",
-            "permanent": false
         }
     ],
     "rewrites": [
+        {
+            "source": "/home",
+            "destination": "/landingPage.html"
+        },
+        {
+            "source": "/login",
+            "destination": "/login.html"
+        },
+        {
+            "source": "/signup",
+            "destination": "/signup.html"
+        },
+        {
+            "source": "/dashboard",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/settings",
+            "destination": "/settings.html"
+        },
         {
             "source": "/api/:path*",
             "destination": "https://cipherguard-mnks.onrender.com/api/:path*"
