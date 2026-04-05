@@ -354,7 +354,7 @@ $('dec-btn').addEventListener('click', async () => {
     const rsaStepPromise = progressJob ? waitForJobStep(progressJob, 2) : null;
     const { blob, originalName } = await decSteps.run([
       { id: 's1', label: 'Validating file header', duration: 400 },
-      { id: 's2', label: 'RSA-2048 key decryption', duration: 2100 },
+      { id: 's2', label: 'RSA-2048 key decryption', duration: 7100 },
       { id: 's3', label: 'Reversing Triple-DES layer', duration: 600 },
       { id: 's4', label: 'Restoring original image', duration: 500 },
     ], async () => {
