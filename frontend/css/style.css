@@ -525,8 +525,35 @@ body {
 }
 
 .step[data-state="error"] .step-dot {
-  border-color: var(--red);
   background: var(--red-dim);
+  color: var(--red);
+  border: 1.5px solid rgba(248, 113, 113, 0.4);
+}
+
+.step[data-state="error"] .step-dot::before,
+.step[data-state="error"] .step-dot::after {
+  content: '';
+  position: absolute;
+  width: 11px;
+  height: 1.8px;
+  background: var(--red);
+  border-radius: 2px;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+}
+
+.step[data-state="error"] .step-dot::before {
+  transform: translate(-46%, -44%) rotate(45deg);
+}
+
+.step[data-state="error"] .step-dot::after {
+  transform: translate(-46%, -44%) rotate(-45deg);
+}
+
+.step[data-state="error"] .step-spinner,
+.step[data-state="error"] .step-check {
+  display: none;
 }
 
 .step-spinner {
