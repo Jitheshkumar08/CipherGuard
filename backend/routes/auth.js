@@ -14,19 +14,49 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
  * SIGNUP
  */
 router.post('/signup', [
-    body('username').trim().isLength({ min: 3 }),
-    body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 8 })
+    body('username')
+        .trim()
+        .notEmpty().withMessage('Username is required.')
+        .isLength({ min: 3, max: 30 }).withMessage('Username must be 3-30 characters long.')
+        .matches(/^[a-zA-Z0-9_]+$/).withMessage('Username can contain only letters, numbers, and underscore (_).'),
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required.')
+        .isEmail().withMessage('Please enter a valid email address.')
+        .normalizeEmail(),
+    body('password')
+        .notEmpty().withMessage('Password is required.')
+        .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.')
 ], async (req, res) => {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            error: 'Please fix the highlighted signup fields.',
+            errors: errors.array().map((e) => ({ field: e.path, msg: e.msg }))
+        });
+    }
 
     const { username, email, password } = req.body;
 
     try {
-        // 1. Check if user exists
-        let result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-        if (result.rows.length > 0) return res.status(400).json({ error: 'Email already in use.' });
+        // 1. Check if username/email already exist and return all collisions
+        const existsQuery = await pool.query(
+            `SELECT
+                EXISTS (SELECT 1 FROM users WHERE email = $1) AS email_exists,
+                EXISTS (SELECT 1 FROM users WHERE username = $2) AS username_exists`,
+            [email, username]
+        );
+
+        const { email_exists, username_exists } = existsQuery.rows[0];
+        if (email_exists || username_exists) {
+            const signupErrors = [];
+            if (username_exists) signupErrors.push({ field: 'username', msg: 'Username is already taken.' });
+            if (email_exists) signupErrors.push({ field: 'email', msg: 'Email is already in use.' });
+            return res.status(400).json({
+                error: 'Account creation failed due to duplicate fields.',
+                errors: signupErrors
+            });
+        }
 
         // 2. Hash password
         const password_hash = await bcrypt.hash(password, 12);
@@ -56,6 +86,19 @@ router.post('/signup', [
 
         res.status(201).json({ token, user });
     } catch (err) {
+        if (err && err.code === '23505') {
+            const detail = String(err.detail || '').toLowerCase();
+            const signupErrors = [];
+            if (detail.includes('(username)')) signupErrors.push({ field: 'username', msg: 'Username is already taken.' });
+            if (detail.includes('(email)')) signupErrors.push({ field: 'email', msg: 'Email is already in use.' });
+            if (signupErrors.length === 0) signupErrors.push({ field: 'signup', msg: 'Username or email already exists.' });
+
+            return res.status(400).json({
+                error: 'Account creation failed due to duplicate fields.',
+                errors: signupErrors
+            });
+        }
+
         console.error('[Signup]', err);
         res.status(500).json({ error: 'Internal server error during signup.' });
     }

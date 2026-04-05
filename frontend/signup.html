@@ -79,7 +79,7 @@
       </form>
 
       <div class="result-block error hidden" id="err-block">
-        <div class="result-body" id="err-text" style="color:#f87171"></div>
+        <div class="result-body" id="err-text" style="color:#f87171; white-space:pre-line"></div>
       </div>
 
       <div style="text-align:center; margin-top: 1.5rem;">
@@ -100,6 +100,19 @@
       const password = document.getElementById('password').value;
       const btn = document.getElementById('signup-btn');
 
+      function buildSignupErrorMessage(data) {
+        if (!data || typeof data !== 'object') return 'Signup failed';
+
+        if (Array.isArray(data.errors) && data.errors.length > 0) {
+          const messages = [...new Set(data.errors.map((e) => e && e.msg).filter(Boolean))];
+          if (messages.length > 0) {
+            return `Please fix the following:\n- ${messages.join('\n- ')}`;
+          }
+        }
+
+        return data.error || 'Signup failed';
+      }
+
       btn.disabled = true;
       btn.textContent = 'Generating Keys & Vault...';
       document.getElementById('err-block').classList.add('hidden');
@@ -113,8 +126,7 @@
         const data = await res.json();
 
         if (!res.ok) {
-          let msg = data.error || 'Signup failed';
-          if (data.errors) msg = data.errors[0].msg;
+          const msg = buildSignupErrorMessage(data);
           throw new Error(msg);
         }
 
