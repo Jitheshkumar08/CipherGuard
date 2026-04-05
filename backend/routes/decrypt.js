@@ -67,7 +67,7 @@ router.post('/', auth, upload.single('encfile'), requireKeys, async (req, res) =
   } catch (err) {
     console.error('[Decrypt] Error:', err.message);
     if (fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: err.message, step: err.step || 4 });
   }
 });
 
@@ -91,7 +91,7 @@ router.get('/:fileId', auth, requireKeys, async (req, res) => {
     sendImage(res, imageBuffer, originalName);
   } catch (err) {
     console.error('[Decrypt] Error:', err.message);
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ error: err.message, step: err.step || 4 });
   }
 });
 
