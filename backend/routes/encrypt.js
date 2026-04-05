@@ -67,7 +67,7 @@ router.post('/', auth, upload.single('image'), requireKeys, async (req, res) => 
   } catch (err) {
     console.error('[Encrypt] Error:', err.message);
     if (fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
-    res.status(500).json({ error: 'Encryption failed: ' + err.message });
+    res.status(500).json({ error: 'Encryption failed: ' + err.message, step: err.step || 4 });
   }
 });
 
