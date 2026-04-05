@@ -35,7 +35,7 @@ router.put('/password', async (req, res) => {
 
         // 1. Verify old
         const valid = await bcrypt.compare(currentPassword, userRow.password_hash);
-        if (!valid) return res.status(401).json({ error: 'Incorrect current password.' });
+        if (!valid) return res.status(403).json({ error: 'Incorrect current password.' });
 
         // 2. Decrypt DEK with old KEK
         const oldKek = deriveKek(currentPassword, userRow.kek_salt);
