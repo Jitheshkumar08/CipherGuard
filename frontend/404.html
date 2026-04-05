@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 Not Found — CipherGuard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="icon" href="assets/cipherGuard.png">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #080c14;
+      --bg2: #0d1220;
+      --surface: rgba(255, 255, 255, 0.04);
+      --surface-hov: rgba(255, 255, 255, 0.07);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hov: rgba(100, 130, 255, 0.35);
+      --blue: #4f87ff;
+      --purple: #a259ff;
+      --cyan: #38d9f5;
+      --gold: #f5b442;
+      --text: #e8eaf2;
+      --muted: #6b7280;
+      --grad: linear-gradient(135deg, var(--blue), var(--purple));
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius: 16px;
+      --ease: cubic-bezier(.22, .68, 0, 1.2);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.65;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    ::selection {
+      background: rgba(79, 135, 255, .35);
+    }
+
+    /* Ambient blobs */
+    .bg-blobs {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: .18;
+    }
+
+    .blob-1 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, #4f87ff 0%, transparent 70%);
+      top: -150px;
+      left: -150px;
+      animation: blobDrift1 20s ease-in-out infinite alternate;
+    }
+
+    .blob-2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #a259ff 0%, transparent 70%);
+      bottom: -100px;
+      right: -100px;
+      animation: blobDrift2 25s ease-in-out infinite alternate;
+    }
+
+    @keyframes blobDrift1 {
+      to { transform: translate(80px, 60px); }
+    }
+
+    @keyframes blobDrift2 {
+      to { transform: translate(-60px, -80px); }
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      padding: 0 20px;
+    }
+    
+    .error-code {
+      font-family: var(--font-head);
+      font-size: clamp(6rem, 15vw, 12rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -.05em;
+      background: var(--grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 20px;
+      opacity: 0;
+      animation: fadeUp .9s var(--ease) 0.1s forwards;
+    }
+
+    h1 {
+      font-family: var(--font-head);
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      letter-spacing: -.02em;
+      margin-bottom: 20px;
+      opacity: 0;
+      animation: fadeUp .9s var(--ease) .25s forwards;
+    }
+
+    p {
+      font-size: clamp(1rem, 2vw, 1.15rem);
+      color: #94a3b8;
+      max-width: 500px;
+      margin: 0 auto 40px;
+      font-weight: 300;
+      line-height: 1.7;
+      opacity: 0;
+      animation: fadeUp .9s var(--ease) .4s forwards;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 13px 32px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-decoration: none;
+      background: var(--grad);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform .2s var(--ease), box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(79, 135, 255, .3);
+      opacity: 0;
+      animation: fadeUp .9s var(--ease) .55s forwards;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0);
+      transition: background .25s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(79, 135, 255, .45);
+    }
+
+    .btn-primary:hover::before {
+      background: rgba(255, 255, 255, .1);
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Ambient Background -->
+  <div class="bg-blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <main class="page">
+    <div class="error-code">404</div>
+    <h1>Lost in Cyberspace</h1>
+    <p>It looks like you've wandered into an undocumented sector. The route you're looking for doesn't exist or was encrypted away.</p>
+    
+    <a href="/home" class="btn-primary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+      </svg>
+      Return to Base
+    </a>
+  </main>
+</body>
+
+</html>
