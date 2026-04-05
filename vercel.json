@@ -1,0 +1,35 @@
+{
+    "redirects": [
+        {
+            "source": "/",
+            "destination": "/home",
+            "permanent": false
+        }
+    ],
+    "rewrites": [
+        {
+            "source": "/home",
+            "destination": "/landingPage.html"
+        },
+        {
+            "source": "/login",
+            "destination": "/login.html"
+        },
+        {
+            "source": "/signup",
+            "destination": "/signup.html"
+        },
+        {
+            "source": "/dashboard",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/settings",
+            "destination": "/settings.html"
+        },
+        {
+            "source": "/api/:path*",
+            "destination": "https://cipherguard-mnks.onrender.com/api/:path*"
+        }
+    ]
+}

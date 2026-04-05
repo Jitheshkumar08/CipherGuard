@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signup — CipherGuard</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="assets/cipherGuard.png">
+  <style>
+    .auth-container {
+      max-width: 400px;
+      margin: 100px auto;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #a1a1aa;
+      font-size: 0.9rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+
+    .auth-link {
+      color: var(--blue);
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <div class="app auth-container">
+    <div class="glass-card">
+      <div style="text-align:center; margin-bottom: 2rem;">
+        <img src="assets/cipherGuard.png" alt="" width="57px" style="margin-bottom:1rem;">
+        <h2>Create Vault</h2>
+        <p style="color:#a1a1aa;font-size:0.9rem">Get your private multi-level encryption environment</p>
+      </div>
+
+      <form id="signup-form">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="username" required>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="email" required>
+        </div>
+        <div class="form-group">
+          <label>Setup Master Password</label>
+          <input type="password" id="password" required>
+          <p style="font-size: 0.8rem; color: var(--amber); margin-top:0.3rem">Do not forget this! We cannot recover
+            your keys.</p>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%; margin-top:1rem;" id="signup-btn">Create
+          Account</button>
+      </form>
+
+      <div class="result-block error hidden" id="err-block">
+        <div class="result-body" id="err-text" style="color:#f87171"></div>
+      </div>
+
+      <div style="text-align:center; margin-top: 1.5rem;">
+        <a href="/login" class="auth-link">Already have an account? Log in</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem('token')) {
+      window.location.replace('/dashboard');
+    }
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('username').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('signup-btn');
+
+      btn.disabled = true;
+      btn.textContent = 'Generating Keys & Vault...';
+      document.getElementById('err-block').classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          let msg = data.error || 'Signup failed';
+          if (data.errors) msg = data.errors[0].msg;
+          throw new Error(msg);
+        }
+
+        localStorage.setItem('token', data.token);
+        sessionStorage.setItem('mlefps_pass', password); // Store for current session keys
+        window.location.href = '/dashboard';
+      } catch (err) {
+        document.getElementById('err-text').textContent = err.message;
+        document.getElementById('err-block').classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+
+</html>

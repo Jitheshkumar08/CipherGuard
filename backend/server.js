@@ -1,48 +1,90 @@
 'use strict';
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
-const cors    = require('cors');
-const path    = require('path');
+const cors = require('cors');
 
-const { initKeys }   = require('./storage/keyStore');
-const encryptRouter  = require('./routes/encrypt');
-const decryptRouter  = require('./routes/decrypt');
-const filesRouter    = require('./routes/files');
+const authRouter = require('./routes/auth');
+const jobsRouter = require('./routes/jobs');
+const encryptRouter = require('./routes/encrypt');
+const decryptRouter = require('./routes/decrypt');
+const filesRouter = require('./routes/files');
+const userRouter = require('./routes/user');
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3000;
+const FRONTEND = path.join(__dirname, '..', 'frontend');
 
-app.use(cors());
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const page = (file) => (_req, res) => res.sendFile(path.join(FRONTEND, file));
+const send404 = (_req, res) => res.status(404).sendFile(path.join(FRONTEND, '404.html'));
+
+// ── Guards ───────────────────────────────────────────────────────────────────
+if (!process.env.JWT_SECRET) {
+  console.error('[ENV] FATAL ERROR: JWT_SECRET environment variable is required.');
+  process.exit(1);
+}
+
+// ── Middleware ────────────────────────────────────────────────────────────────
+const corsOrigin = process.env.CORS_ORIGIN || '*';
+const corsOptions = corsOrigin === '*'
+  ? { origin: '*' }
+  : { origin: corsOrigin.split(',').map(o => o.trim()).filter(Boolean) };
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
-// Serve frontend static files
-app.use(express.static(path.join(__dirname, '..', 'frontend')));
+// ── Frontend (monolith mode) ──────────────────────────────────────────────────
+// Enable by setting SERVE_FRONTEND=true in .env
+// Disabled by default for Render (API) + Vercel (frontend) split deployments.
+if (process.env.SERVE_FRONTEND === 'true') {
 
-// API routes
+  // Only whitelisted extensions are allowed from asset directories.
+  // Anything else (e.g. desktop.ini, .html files) → 404.
+  const ALLOWED_EXT = new Set(['.css', '.js', '.png', '.jpg', '.jpeg', '.ico', '.svg', '.webp', '.woff', '.woff2']);
+  const assetGuard = (req, res, next) => {
+    if (ALLOWED_EXT.has(path.extname(req.path).toLowerCase())) return next();
+    return send404(req, res);
+  };
+
+  app.use('/css', assetGuard, express.static(path.join(FRONTEND, 'css'), { index: false }));
+  app.use('/js', assetGuard, express.static(path.join(FRONTEND, 'js'), { index: false }));
+  app.use('/assets', assetGuard, express.static(path.join(FRONTEND, 'assets'), { index: false }));
+
+  // Valid page routes — ONLY these clean URLs are served
+  app.get('/', page('landingPage.html'));
+  app.get('/home', page('landingPage.html'));
+  app.get('/login', page('login.html'));
+  app.get('/signup', page('signup.html'));
+  app.get('/dashboard', page('index.html'));
+}
+
+// ── API routes ────────────────────────────────────────────────────────────────
+app.use('/api/auth', authRouter);
+app.use('/api/jobs', jobsRouter);
+app.use('/api/user', userRouter);
 app.use('/api/encrypt', encryptRouter);
 app.use('/api/decrypt', decryptRouter);
-app.use('/api/files',   filesRouter);
+app.use('/api/files', filesRouter);
 
-// Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', version: '1.0.0', name: 'MLEFPS' });
 });
 
-// Serve index.html for all other routes (SPA fallback)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
-});
+// ── Catch-all 404 ─────────────────────────────────────────────────────────────
+// Every URL not matched above — including /*.html, /settings, /random — gets 404.
+app.use(send404);
 
-// Global error handler
-app.use((err, req, res, next) => {
+// ── Global error handler ──────────────────────────────────────────────────────
+app.use((err, _req, res, _next) => {
   console.error('[Server Error]', err.message);
   res.status(err.status || 500).json({ error: err.message || 'Internal server error.' });
 });
 
-// Boot
+// ── Boot ──────────────────────────────────────────────────────────────────────
 (async () => {
   try {
-    await initKeys();
     app.listen(PORT, () => {
       console.log(`\n✅ MLEFPS server running at http://localhost:${PORT}`);
       console.log(`   Encryption: AES-256-CBC → Triple-DES-CBC → RSA-2048-OAEP`);

@@ -12,6 +12,20 @@ const MIN_HEADER = MAGIC_LEN + KEY_LEN_SIZE + NAME_LEN_SIZE;
 const AES_KEY = 32, AES_IV = 16, DES_KEY = 24, DES_IV = 8;
 const KEY_BUNDLE_SIZE = AES_KEY + AES_IV + DES_KEY + DES_IV; // 80 bytes
 
+function withStep(step, err) {
+  if (err && typeof err === 'object') {
+    err.step = step;
+    return err;
+  }
+  const wrapped = new Error(String(err));
+  wrapped.step = step;
+  return wrapped;
+}
+
+function reportProgress(reporter, patch) {
+  if (typeof reporter === 'function') reporter(patch);
+}
+
 function generateSymmetricKeys() {
   return {
     aesKey: crypto.randomBytes(AES_KEY),
@@ -109,36 +123,101 @@ function parseMlencFile(buf) {
 
   if (offset + KEY_LEN_SIZE > buf.length) throw new Error('Truncated file: cannot read key block length');
   const keyLen = buf.readUInt32BE(offset); offset += KEY_LEN_SIZE;
-  if (keyLen === 0 || keyLen > 512) throw new Error(`Decryption Failed - Invalid key block length: ${keyLen}`);
-  if (offset + keyLen > buf.length) throw new Error('Decryption Failed - Truncated file: key block extends past EOF');
+  if (keyLen === 0 || keyLen > 512) throw new Error(`Invalid key block length: ${keyLen}`);
+  if (offset + keyLen > buf.length) throw new Error('Truncated file: key block extends past EOF');
   const encryptedKeys = buf.slice(offset, offset + keyLen); offset += keyLen;
 
-  if (offset + NAME_LEN_SIZE > buf.length) throw new Error('Decryption Failed - Truncated file: cannot read filename length');
+  if (offset + NAME_LEN_SIZE > buf.length) throw new Error('Truncated file: cannot read filename length');
   const nameLen = buf.readUInt16BE(offset); offset += NAME_LEN_SIZE;
-  if (offset + nameLen > buf.length) throw new Error('Decryption Failed - Truncated file: filename extends past EOF');
+  if (offset + nameLen > buf.length) throw new Error('Truncated file: filename extends past EOF');
   const originalName = buf.slice(offset, offset + nameLen).toString('utf8'); offset += nameLen;
 
-  if (offset >= buf.length) throw new Error('Decryption Failed - Truncated file: no ciphertext after header');
+  if (offset >= buf.length) throw new Error('Truncated file: no ciphertext after header');
   const ciphertext = buf.slice(offset);
 
   return { encryptedKeys, originalName, ciphertext };
 }
 
-async function encryptImage(imageBuffer, originalName, publicKeyPem) {
+async function encryptImage(imageBuffer, originalName, publicKeyPem, reporter) {
   if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) throw new Error('Empty image buffer');
   const keys = generateSymmetricKeys();
-  const layer1 = aesEncrypt(imageBuffer, keys.aesKey, keys.aesIv);
-  const layer2 = desEncrypt(layer1, keys.desKey, keys.desIv);
-  const encryptedKeys = rsaEncryptKeys(keys, publicKeyPem);
-  return buildMlencFile(layer2, encryptedKeys, originalName);
+  let layer1;
+  try {
+    reportProgress(reporter, { stepIndex: 1, percent: 25, message: 'AES-256 encryption' });
+    layer1 = aesEncrypt(imageBuffer, keys.aesKey, keys.aesIv);
+  } catch (err) {
+    throw withStep(1, err);
+  }
+
+  let layer2;
+  try {
+    reportProgress(reporter, { stepIndex: 2, percent: 50, message: 'Triple-DES encryption' });
+    layer2 = desEncrypt(layer1, keys.desKey, keys.desIv);
+  } catch (err) {
+    throw withStep(2, err);
+  }
+
+  let encryptedKeys;
+  try {
+    reportProgress(reporter, { stepIndex: 3, percent: 75, message: 'RSA-2048 key wrapping' });
+    const rsaStart = Date.now();
+    encryptedKeys = rsaEncryptKeys(keys, publicKeyPem);
+    reportProgress(reporter, {
+      stepIndex: 3,
+      percent: 75,
+      message: `RSA-2048 key wrapping (${Date.now() - rsaStart} ms)`,
+    });
+  } catch (err) {
+    throw withStep(3, err);
+  }
+
+  try {
+    reportProgress(reporter, { stepIndex: 4, percent: 100, message: 'Building .mlenc file' });
+    return buildMlencFile(layer2, encryptedKeys, originalName);
+  } catch (err) {
+    throw withStep(4, err);
+  }
 }
 
-async function decryptImage(mlencBuffer, privateKeyPem) {
-  const { encryptedKeys, originalName, ciphertext } = parseMlencFile(mlencBuffer);
-  const keys = rsaDecryptKeys(encryptedKeys, privateKeyPem);
-  const layer1 = desDecrypt(ciphertext, keys.desKey, keys.desIv);
-  const imageBuffer = aesDecrypt(layer1, keys.aesKey, keys.aesIv);
-  return { imageBuffer, originalName };
+async function decryptImage(mlencBuffer, privateKeyPem, reporter) {
+  let parsed;
+  try {
+    reportProgress(reporter, { stepIndex: 1, percent: 25, message: 'Validating file header' });
+    parsed = parseMlencFile(mlencBuffer);
+  } catch (err) {
+    throw withStep(1, err);
+  }
+
+  let keys;
+  try {
+    reportProgress(reporter, { stepIndex: 2, percent: 50, message: 'RSA-2048 key decryption' });
+    const rsaStart = Date.now();
+    keys = rsaDecryptKeys(parsed.encryptedKeys, privateKeyPem);
+    reportProgress(reporter, {
+      stepIndex: 2,
+      percent: 50,
+      message: `RSA-2048 key decryption (${Date.now() - rsaStart} ms)`,
+    });
+  } catch (err) {
+    throw withStep(2, err);
+  }
+
+  let layer1;
+  try {
+    reportProgress(reporter, { stepIndex: 3, percent: 75, message: 'Reversing Triple-DES layer' });
+    layer1 = desDecrypt(parsed.ciphertext, keys.desKey, keys.desIv);
+  } catch (err) {
+    throw withStep(3, err);
+  }
+
+  let imageBuffer;
+  try {
+    reportProgress(reporter, { stepIndex: 4, percent: 100, message: 'Restoring original image' });
+    imageBuffer = aesDecrypt(layer1, keys.aesKey, keys.aesIv);
+  } catch (err) {
+    throw withStep(4, err);
+  }
+  return { imageBuffer, originalName: parsed.originalName };
 }
 
 module.exports = { generateRsaKeyPair, encryptImage, decryptImage };
