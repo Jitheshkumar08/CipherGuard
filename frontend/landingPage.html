@@ -1491,7 +1491,7 @@
     <!-- NAVBAR -->
     <nav id="navbar">
       <div class="nav-inner">
-        <a class="logo" href="#">
+        <a class="logo" href="/home">
           <div class="logo-icon">
             <img src="assets/cipherGuard.png" alt="CipherGuard logo"
               style="width:100%;height:100%;object-fit:cover;border-radius:10px;" />
@@ -1508,8 +1508,8 @@
           <a href="#how-it-works">How It Works</a>
           <a href="#preview">Preview</a>
 
-          <a href="/login.html" class="btn-nav-login" id="nav-auth-link">Log In</a>
-          <a href="/signup.html" class="btn-nav-signup" id="nav-cta-link">Get Started</a>
+          <a href="/login" class="btn-nav-login" id="nav-auth-link">Log In</a>
+          <a href="/signup" class="btn-nav-signup" id="nav-cta-link">Get Started</a>
         </div>
 
         <!-- Hamburger (mobile only) -->
@@ -1525,8 +1525,8 @@
       <a href="#how-it-works" id="mm-hiw">How It Works</a>
       <a href="#preview" id="mm-preview">Preview</a>
       <a href="#teams" id="mm-teams">Teams</a>
-      <a href="/login.html" id="mm-auth-link">Log In</a>
-      <a href="/signup.html" class="mm-signup" id="mm-cta-link">Get Started</a>
+      <a href="/login" id="mm-auth-link">Log In</a>
+      <a href="/signup" class="mm-signup" id="mm-cta-link">Get Started</a>
     </div>
 
     <!-- HERO -->
@@ -1539,7 +1539,7 @@
       <p>CipherGuard wraps your files in three nested layers of cryptography — AES-256, Triple-DES, and RSA-2048 — then
         locks everything with your personal key. Only you can unlock it.</p>
       <div class="hero-cta">
-        <a href="/signup.html" class="btn-primary">🔐 Start Encrypting Free</a>
+        <a href="/signup" class="btn-primary">🔐 Start Encrypting Free</a>
         <a href="#how-it-works" class="btn-ghost">See How It Works ↓</a>
       </div>
       <div class="hero-pipeline">
@@ -1795,8 +1795,8 @@
         <h2>Your files deserve<br /><span class="grad-text">real protection</span></h2>
         <p>Join CipherGuard and encrypt your sensitive images with three layers of cryptography — for free, forever.</p>
         <div class="cta-actions">
-          <a href="/signup.html" class="btn-primary" style="font-size:1rem;padding:14px 32px">🔐 Create Free Account</a>
-          <a href="/login.html" class="btn-ghost" style="font-size:1rem;padding:14px 32px">Log In</a>
+          <a href="/signup" class="btn-primary" style="font-size:1rem;padding:14px 32px">🔐 Create Free Account</a>
+          <a href="/login" class="btn-ghost" style="font-size:1rem;padding:14px 32px">Log In</a>
         </div>
       </div>
     </section>
@@ -1804,7 +1804,7 @@
     <!-- FOOTER -->
     <footer>
       <div class="footer-inner">
-        <a class="footer-logo" href="#">
+        <a class="footer-logo" href="/home">
           <div class="logo-icon" style="width:32px;height:32px">
             <img src="assets/cipherGuard.png" alt="CipherGuard logo"
               style="width:100%;height:100%;object-fit:cover;border-radius:8px;" />
@@ -1813,8 +1813,8 @@
         </a>
         <span class="footer-copy">© 2026 CipherGuard. All rights reserved.</span>
         <div class="footer-links">
-          <a href="/login.html">Login</a>
-          <a href="/signup.html">Sign Up</a>
+          <a href="/login">Login</a>
+          <a href="/signup">Sign Up</a>
           <a href="#features">Features</a>
 
         </div>
@@ -1837,26 +1837,26 @@
       if (token) {
         navAuth.style.display = 'none';
 
-        navCta.href = '/index.html';
+        navCta.href = '/dashboard';
         navCta.textContent = 'Dashboard';
 
         mmAuth.style.display = 'none';
 
-        mmCta.href = '/index.html';
+        mmCta.href = '/dashboard';
         mmCta.textContent = 'Dashboard';
       } else {
-        navAuth.href = '/login.html';
+        navAuth.href = '/login';
         navAuth.textContent = 'Log In';
         navAuth.style.display = '';
 
-        navCta.href = '/signup.html';
+        navCta.href = '/signup';
         navCta.textContent = 'Get Started';
 
-        mmAuth.href = '/login.html';
+        mmAuth.href = '/login';
         mmAuth.textContent = 'Log In';
         mmAuth.style.display = '';
 
-        mmCta.href = '/signup.html';
+        mmCta.href = '/signup';
         mmCta.textContent = 'Get Started';
       }
     }
