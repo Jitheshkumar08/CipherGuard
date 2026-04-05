@@ -461,7 +461,7 @@ async function fetchUserProfile() {
       userRsaKey = '';
       $('sb-rsa-key').textContent = 'Private key locked for this session. Please re-login to unlock it.';
       localStorage.removeItem('token');
-      window.location.href = 'login.html';
+      window.location.href = '/login';
       return;
     } else {
       const resKey = await fetch('/api/user/private-key');
