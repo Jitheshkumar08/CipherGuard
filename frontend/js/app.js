@@ -81,6 +81,14 @@ function waitForJobStep(job, targetStep) {
         return;
       }
 
+      const message = String(snapshot.message || '');
+      const rsaTimingReported = Number(snapshot.stepIndex) === targetStep && /\(\d+\s*ms\)/i.test(message);
+
+      if (rsaTimingReported) {
+        finish(resolve, snapshot);
+        return;
+      }
+
       if (snapshot.status === 'done' || Number(snapshot.stepIndex) > targetStep) {
         finish(resolve, snapshot);
       }
@@ -140,7 +148,7 @@ class StepController {
     steps.forEach((s, i) => this.setState(i + 1, 'pending', token));
 
     // Start first step immediately, rest simulate in parallel with API
-    const totalDuration = steps.reduce((a, s) => a + s.duration, 0);
+    let totalDuration = steps.reduce((a, s) => a + s.duration, 0);
     let elapsed = 0;
     let cancelled = false;
 
@@ -152,19 +160,23 @@ class StepController {
       for (let i = 0; i < steps.length - 1; i++) {
         if (cancelled || token !== this.runToken) return;
         const s = steps[i];
+        const isRealStep = Boolean(realStepPromise && realStepIndex === i + 1);
         this.setState(i + 1, 'active', token);
         this.setBar((elapsed / totalDuration) * 90, s.label + '...', token);
         const stepStart = Date.now();
-        if (realStepPromise && realStepIndex === i + 1) {
+        if (isRealStep) {
           await realStepPromise;
         } else {
           await delay(s.duration);
         }
         if (cancelled || token !== this.runToken) return;
         this.setState(i + 1, 'done', token);
-        elapsed += realStepPromise && realStepIndex === i + 1
-          ? Math.max(0, Date.now() - stepStart)
-          : s.duration;
+        const observedDuration = Math.max(0, Date.now() - stepStart);
+        const usedDuration = isRealStep ? observedDuration : s.duration;
+        elapsed += usedDuration;
+        if (isRealStep) {
+          totalDuration = Math.max(1, totalDuration - s.duration + usedDuration);
+        }
       }
       if (cancelled || token !== this.runToken) return;
       // Last step waits for API to complete
@@ -262,8 +274,8 @@ $('enc-btn').addEventListener('click', async () => {
   encSteps.reset();
 
   try {
-    const progressJob = await createProgressJob('encrypt').catch(() => null);
-    const rsaStepPromise = progressJob ? waitForJobStep(progressJob, 3) : null;
+    const progressJob = await createProgressJob('encrypt');
+    const rsaStepPromise = waitForJobStep(progressJob, 3);
     const result = await encSteps.run([
       { id: 's1', label: 'AES-256 encryption', duration: 600 },
       { id: 's2', label: 'Triple-DES encryption', duration: 600 },
@@ -272,10 +284,10 @@ $('enc-btn').addEventListener('click', async () => {
     ], async () => {
       const fd = new FormData();
       fd.append('image', encFile);
-      const headers = progressJob ? {
+      const headers = {
         'x-job-id': progressJob.jobId,
         'x-job-token': progressJob.jobToken,
-      } : undefined;
+      };
       const res = await fetch('/api/encrypt', { method: 'POST', body: fd, headers });
       const data = await res.json();
       if (!res.ok) {
@@ -350,20 +362,20 @@ $('dec-btn').addEventListener('click', async () => {
   }
 
   try {
-    const progressJob = await createProgressJob('decrypt').catch(() => null);
-    const rsaStepPromise = progressJob ? waitForJobStep(progressJob, 2) : null;
+    const progressJob = await createProgressJob('decrypt');
+    const rsaStepPromise = waitForJobStep(progressJob, 2);
     const { blob, originalName } = await decSteps.run([
       { id: 's1', label: 'Validating file header', duration: 400 },
-      { id: 's2', label: 'RSA-2048 key decryption', duration: 2100 },
+      { id: 's2', label: 'RSA-2048 key decryption', duration: 800 },
       { id: 's3', label: 'Reversing Triple-DES layer', duration: 600 },
       { id: 's4', label: 'Restoring original image', duration: 500 },
     ], async () => {
       const fd = new FormData();
       fd.append('encfile', decFile);
-      const headers = progressJob ? {
+      const headers = {
         'x-job-id': progressJob.jobId,
         'x-job-token': progressJob.jobToken,
-      } : undefined;
+      };
       const res = await fetch('/api/decrypt', { method: 'POST', body: fd, headers });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Server error' }));
