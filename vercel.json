@@ -2,7 +2,32 @@
     "redirects": [
         {
             "source": "/",
+            "destination": "/home",
+            "permanent": false
+        },
+        {
+            "source": "/home",
             "destination": "/landingPage.html",
+            "permanent": false
+        },
+        {
+            "source": "/login",
+            "destination": "/login.html",
+            "permanent": false
+        },
+        {
+            "source": "/signup",
+            "destination": "/signup.html",
+            "permanent": false
+        },
+        {
+            "source": "/dashboard",
+            "destination": "/index.html",
+            "permanent": false
+        },
+        {
+            "source": "/settings",
+            "destination": "/settings.html",
             "permanent": false
         }
     ],
