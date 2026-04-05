@@ -11,6 +11,37 @@ function fmt(n) {
 function show(el) { el && el.classList.remove('hidden'); }
 function hide(el) { el && el.classList.add('hidden'); }
 
+function inferStepFromErrorMessage(message, mode) {
+  const m = String(message || '').toLowerCase();
+  if (!m) return null;
+
+  if (mode === 'decrypt') {
+    if (m.includes('password') || m.includes('unlock encryption keys') || m.includes('cannot unlock keys')) return 1;
+    if (m.includes('header') || m.includes('mlenc') || m.includes('file too small') || m.includes('truncated file')) return 1;
+    if (m.includes('rsa') || m.includes('key block') || m.includes('private key')) return 2;
+    if (m.includes('3des') || m.includes('triple-des')) return 3;
+    if (m.includes('aes')) return 4;
+  } else {
+    if (m.includes('password') || m.includes('unlock encryption keys') || m.includes('cannot unlock keys')) return 1;
+    if (m.includes('aes')) return 1;
+    if (m.includes('3des') || m.includes('triple-des')) return 2;
+    if (m.includes('rsa') || m.includes('key')) return 3;
+    if (m.includes('mlenc') || m.includes('build')) return 4;
+  }
+
+  return null;
+}
+
+function resolveErrorStep(err, activeStepNum, mode) {
+  const numericStep = Number(err && err.step);
+  if (Number.isInteger(numericStep) && numericStep >= 1 && numericStep <= 4) return numericStep;
+
+  const inferred = inferStepFromErrorMessage(err && err.message, mode);
+  if (inferred) return inferred;
+
+  return activeStepNum;
+}
+
 // ── Tab switching ──────────────────────────────────────────────────────────────
 document.querySelectorAll('.nav-tab').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -28,17 +59,20 @@ class StepController {
     this.prefix = prefix;
     this.total = totalSteps;
     this.current = 0;
+    this.runToken = 0;
     this.barFill = $(prefix + '-bar-fill');
     this.pctEl = $(prefix + '-pct');
     this.statusEl = $(prefix + '-status');
   }
 
-  setState(stepNum, state) {
+  setState(stepNum, state, token = this.runToken) {
+    if (token !== this.runToken) return;
     const el = $(this.prefix + '-s' + stepNum);
     if (el) el.dataset.state = state;
   }
 
-  setBar(pct, statusMsg) {
+  setBar(pct, statusMsg, token = this.runToken) {
+    if (token !== this.runToken) return;
     this.barFill.style.width = pct + '%';
     this.pctEl.textContent = Math.round(pct) + '%';
     if (statusMsg && this.statusEl) this.statusEl.textContent = statusMsg;
@@ -47,14 +81,16 @@ class StepController {
   // Animate through steps with realistic delays
   // steps: array of { id, label, duration }
   async run(steps, apiCall) {
+    const token = ++this.runToken;
     show($(this.prefix + '-progress'));
 
     // Mark all pending
-    steps.forEach((s, i) => this.setState(i + 1, 'pending'));
+    steps.forEach((s, i) => this.setState(i + 1, 'pending', token));
 
     // Start first step immediately, rest simulate in parallel with API
     const totalDuration = steps.reduce((a, s) => a + s.duration, 0);
     let elapsed = 0;
+    let cancelled = false;
 
     // Kick off API call
     const apiPromise = apiCall();
@@ -62,36 +98,63 @@ class StepController {
     // Animate steps concurrently
     const animateSteps = async () => {
       for (let i = 0; i < steps.length - 1; i++) {
+        if (cancelled || token !== this.runToken) return;
         const s = steps[i];
-        this.setState(i + 1, 'active');
-        this.setBar((elapsed / totalDuration) * 90, s.label + '...');
+        this.setState(i + 1, 'active', token);
+        this.setBar((elapsed / totalDuration) * 90, s.label + '...', token);
         await delay(s.duration);
-        this.setState(i + 1, 'done');
+        if (cancelled || token !== this.runToken) return;
+        this.setState(i + 1, 'done', token);
         elapsed += s.duration;
       }
+      if (cancelled || token !== this.runToken) return;
       // Last step waits for API to complete
-      this.setState(steps.length, 'active');
-      this.setBar(92, steps[steps.length - 1].label + '...');
+      this.setState(steps.length, 'active', token);
+      this.setBar(92, steps[steps.length - 1].label + '...', token);
+
+      const finalDelay = Math.max(0, Number(steps[steps.length - 1].duration) || 0);
+      if (finalDelay > 0) {
+        await delay(finalDelay);
+      }
     };
 
-    const [result] = await Promise.all([apiPromise, animateSteps()]);
+    let result;
+    try {
+      [result] = await Promise.all([apiPromise, animateSteps()]);
+    } catch (err) {
+      cancelled = true;
+      if (token === this.runToken) this.runToken += 1;
+      throw err;
+    }
+
+    if (token !== this.runToken) return result;
 
     // All done
-    steps.forEach((s, i) => this.setState(i + 1, 'done'));
-    this.setBar(100, 'Complete');
+    steps.forEach((s, i) => this.setState(i + 1, 'done', token));
+    this.setBar(100, 'Complete', token);
     return result;
   }
 
   markError(stepNum, msg) {
-    this.setState(stepNum, 'error');
+    const token = ++this.runToken;
+    const safeStep = Math.max(1, Math.min(stepNum || 1, this.total));
+
+    for (let i = 1; i <= this.total; i++) {
+      if (i < safeStep) this.setState(i, 'done', token);
+      else if (i === safeStep) this.setState(i, 'error', token);
+      else this.setState(i, 'pending', token);
+    }
+
+    this.setBar(100, msg || 'Error', token);
     if (this.statusEl) this.statusEl.textContent = msg;
-    this.pctEl.textContent = 'Failed';
+    this.pctEl.textContent = '100%';
   }
 
   reset() {
+    const token = ++this.runToken;
     hide($(this.prefix + '-progress'));
-    this.setBar(0, '');
-    for (let i = 1; i <= this.total; i++) this.setState(i, 'pending');
+    this.setBar(0, '', token);
+    for (let i = 1; i <= this.total; i++) this.setState(i, 'pending', token);
   }
 }
 
@@ -150,7 +213,11 @@ $('enc-btn').addEventListener('click', async () => {
       fd.append('image', encFile);
       const res = await fetch('/api/encrypt', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Encryption failed');
+      if (!res.ok) {
+        const err = new Error(data.error || 'Encryption failed');
+        err.step = data.step;
+        throw err;
+      }
       return data;
     });
 
@@ -161,10 +228,10 @@ $('enc-btn').addEventListener('click', async () => {
       `<strong>File ID:</strong> <code style="font-family:monospace;font-size:11px;opacity:.7">${result.fileId}</code>`;
     show($('enc-result'));
   } catch (err) {
-    // Find which step we were on and mark it error
     const activeStep = document.querySelector('#panel-encrypt .step[data-state="active"]');
-    const stepNum = activeStep ? activeStep.id.replace('enc-s', '') : 4;
-    encSteps.markError(parseInt(stepNum), err.message);
+    const activeStepNum = activeStep ? parseInt(activeStep.id.replace('enc-s', ''), 10) : 4;
+    const realStepNum = resolveErrorStep(err, activeStepNum, 'encrypt');
+    encSteps.markError(realStepNum, err.message);
     $('enc-error-body').textContent = err.message;
     show($('enc-error'));
   } finally {
@@ -208,6 +275,15 @@ $('dec-btn').addEventListener('click', async () => {
   hide($('dec-result')); hide($('dec-error'));
   decSteps.reset();
 
+  if (decFile.size === 0) {
+    show($('dec-progress'));
+    decSteps.markError(1, 'File too small: 0 bytes (minimum 14)');
+    $('dec-error-body').textContent = 'File too small: 0 bytes (minimum 14)';
+    show($('dec-error'));
+    $('dec-btn').disabled = false;
+    return;
+  }
+
   try {
     const { blob, originalName } = await decSteps.run([
       { id: 's1', label: 'Validating file header', duration: 400 },
@@ -220,7 +296,9 @@ $('dec-btn').addEventListener('click', async () => {
       const res = await fetch('/api/decrypt', { method: 'POST', body: fd });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'Server error' }));
-        throw new Error(err.error || 'Decryption failed');
+        const error = new Error(err.error || 'Decryption failed');
+        error.step = err.step;
+        throw error;
       }
       const blob = await res.blob();
       const rawName = res.headers.get('X-Original-Name') || 'decrypted_image';
@@ -238,8 +316,9 @@ $('dec-btn').addEventListener('click', async () => {
 
   } catch (err) {
     const activeStep = document.querySelector('#panel-decrypt .step[data-state="active"]');
-    const stepNum = activeStep ? parseInt(activeStep.id.replace('dec-s', '')) : 1;
-    decSteps.markError(stepNum, err.message);
+    const activeStepNum = activeStep ? parseInt(activeStep.id.replace('dec-s', ''), 10) : 1;
+    const realStepNum = resolveErrorStep(err, activeStepNum, 'decrypt');
+    decSteps.markError(realStepNum, err.message);
     $('dec-error-body').innerHTML =
       err.message.replace(/\n/g, '<br>').replace(/(Solution:.*)/g, '<strong style="color:var(--amber)">$1</strong>');
     show($('dec-error'));
