@@ -159,10 +159,7 @@
         localStorage.setItem('token', data.token);
         sessionStorage.setItem('mlefps_pass', password);
         localStorage.setItem('mlefps_pass', password);
-        // Force a tiny visual delay so localStorage 100% commits
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 50);
+        window.location.href = '/dashboard';
       } catch (err) {
         document.getElementById('err-text').textContent = err.message;
         document.getElementById('err-block').classList.remove('hidden');

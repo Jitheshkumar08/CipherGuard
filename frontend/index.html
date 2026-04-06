@@ -516,27 +516,9 @@
 
   <script src="js/api.js"></script>
   <script>
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!localStorage.getItem('token')) {
       window.location.href = '/login';
     } else {
-      const parts = token.split('.');
-      let isExpired = false;
-      try {
-        if (parts.length === 3) {
-          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-          if (payload && payload.exp && Date.now() >= payload.exp * 1000) {
-            isExpired = true;
-          }
-        }
-      } catch (e) {
-        isExpired = true;
-      }
-      if (isExpired) {
-        // Allow api.js to attempt a refresh instead of immediate redirect
-        console.warn('Token seems expired but deferring to api.js for refresh attempt');
-      }
-
       function logout() {
         localStorage.removeItem('token');
         localStorage.removeItem('mlefps_pass');
