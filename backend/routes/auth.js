@@ -4,11 +4,12 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const pool = require('../db/pool');
 const { generateUserKeys } = require('../crypto/userKeyManager');
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '10h';
 
 /**
  * SIGNUP
@@ -140,6 +141,19 @@ router.post('/login', [
     } catch (err) {
         console.error('[Login]', err);
         res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+/**
+ * REFRESH (sliding session)
+ */
+router.post('/refresh', auth, async (req, res) => {
+    try {
+        const token = jwt.sign({ sub: req.user.id, username: req.user.username }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+        res.json({ token });
+    } catch (err) {
+        console.error('[Refresh]', err);
+        res.status(500).json({ error: 'Failed to refresh session.' });
     }
 });
 

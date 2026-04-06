@@ -606,12 +606,10 @@ async function fetchUserProfile() {
       setFieldStatus('sb-email-status', '', '');
     }
 
-    const password = sessionStorage.getItem('mlefps_pass');
+    const password = sessionStorage.getItem('mlefps_pass') || localStorage.getItem('mlefps_pass');
     if (!password) {
       userRsaKey = '';
-      $('sb-rsa-key').textContent = 'Private key locked for this session. Please re-login to unlock it.';
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      $('sb-rsa-key').textContent = 'Private key is locked. Log in again to unlock encryption operations.';
       return;
     } else {
       const resKey = await fetch('/api/user/private-key');
@@ -728,6 +726,7 @@ $('sb-pwd-form').addEventListener('submit', async (e) => {
     if (!res.ok) throw new Error(data.error || 'Failed to update');
 
     sessionStorage.setItem('mlefps_pass', newPassword);
+    localStorage.setItem('mlefps_pass', newPassword);
     e.target.reset();
     setSidebarMessage('sb-pwd-msg', 'success', 'Password updated successfully!');
   } catch (err) {

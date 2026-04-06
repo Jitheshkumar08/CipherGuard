@@ -79,8 +79,9 @@ router.put('/profile', async (req, res) => {
 
         // Re-issue JWT with new username if it changed
         const JWT_SECRET = process.env.JWT_SECRET;
+        const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '10h';
         if (!JWT_SECRET) return res.status(500).json({ error: 'Server misconfiguration: JWT secret missing.' });
-        const token = jwt.sign({ sub: req.user.id, username }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ sub: req.user.id, username }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 
         res.json({ Object: { username, email }, token });
     } catch (err) {
