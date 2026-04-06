@@ -120,7 +120,17 @@ window.scheduleExpiryLogout = scheduleExpiryLogout;
 window.clearAuthState = clearAuthState;
 window.refreshSessionToken = refreshSessionToken;
 
-scheduleExpiryLogout();
+// On page load: refresh token first if available, then schedule expiry check
+async function initializeAuth() {
+    const token = localStorage.getItem('token');
+    if (token && !isTokenValid(token)) {
+        // Token exists but is expired/invalid—try to refresh before logout
+        await refreshSessionToken();
+    }
+    scheduleExpiryLogout();
+}
+
+initializeAuth();
 
 ['click', 'keydown', 'mousemove', 'scroll', 'touchstart', 'focus'].forEach((evt) => {
     window.addEventListener(evt, handleUserActivity, { passive: true });
