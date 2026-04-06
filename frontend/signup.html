@@ -43,6 +43,13 @@
       text-decoration: none;
       font-size: 0.9rem;
     }
+
+    .brand-logo {
+      user-select: none;
+      -webkit-user-drag: none;
+      pointer-events: none;
+      caret-color: transparent;
+    }
   </style>
 </head>
 
@@ -54,7 +61,8 @@
   <div class="app auth-container">
     <div class="glass-card">
       <div style="text-align:center; margin-bottom: 2rem;">
-        <img src="assets/cipherGuard.png" alt="" width="57px" style="margin-bottom:1rem;">
+        <img src="assets/cipherGuard.png" alt="" width="57px" style="margin-bottom:1rem;" class="brand-logo"
+          draggable="false">
         <h2>Create Vault</h2>
         <p style="color:#a1a1aa;font-size:0.9rem">Get your private multi-level encryption environment</p>
       </div>
@@ -89,8 +97,26 @@
   </div>
 
   <script>
-    if (localStorage.getItem('token')) {
+    function isJwtValid(token) {
+      try {
+        const parts = String(token || '').split('.');
+        if (parts.length < 2) return false;
+        const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+        const payload = JSON.parse(atob(padded));
+        return typeof payload.exp === 'number' && Date.now() < payload.exp * 1000;
+      } catch {
+        return false;
+      }
+    }
+
+    const existingToken = localStorage.getItem('token');
+    if (existingToken && isJwtValid(existingToken)) {
       window.location.replace('/dashboard');
+    } else if (existingToken) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('mlefps_pass');
+      sessionStorage.removeItem('mlefps_pass');
     }
 
     document.getElementById('signup-form').addEventListener('submit', async (e) => {
@@ -131,7 +157,8 @@
         }
 
         localStorage.setItem('token', data.token);
-        sessionStorage.setItem('mlefps_pass', password); // Store for current session keys
+        sessionStorage.setItem('mlefps_pass', password);
+        localStorage.setItem('mlefps_pass', password);
         window.location.href = '/dashboard';
       } catch (err) {
         document.getElementById('err-text').textContent = err.message;

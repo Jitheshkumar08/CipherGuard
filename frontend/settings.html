@@ -112,6 +112,7 @@
 
     function logout() {
       localStorage.removeItem('token');
+      localStorage.removeItem('mlefps_pass');
       sessionStorage.removeItem('mlefps_pass');
       window.location.href = '/home';
     }
@@ -138,6 +139,7 @@
         msg.textContent = 'Password updated successfully! Local session updated.';
         msg.style.color = '#4ade80';
         sessionStorage.setItem('mlefps_pass', newPassword);
+        localStorage.setItem('mlefps_pass', newPassword);
         e.target.reset();
       } catch (err) {
         msg.textContent = err.message;
