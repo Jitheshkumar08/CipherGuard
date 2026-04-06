@@ -121,7 +121,7 @@ Minimum required variables:
 Optional variables:
 
 - `PORT` - defaults to `3000`
-- `JWT_EXPIRES_IN` - defaults to `7d`
+- `JWT_EXPIRES_IN` - defaults to `10h`
 - `CORS_ORIGIN` - defaults to `*`
 - `SERVE_FRONTEND` - set to `true` to serve the frontend from the backend server
 - `STORAGE_DIR` - location for persisted `.mlenc` files

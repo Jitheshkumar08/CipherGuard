@@ -14,6 +14,21 @@ function clearAuthState(redirectToLogin = true) {
     }
 }
 
+async function shouldClearAuthFor401(response) {
+    try {
+        const payload = await response.clone().json();
+        const msg = String(payload?.error || payload?.message || '').toLowerCase();
+
+        // Only hard-logout for JWT auth failures from auth middleware.
+        if (msg.includes('invalid or expired token')) return true;
+        if (msg.includes('no authentication token')) return true;
+        if (msg.includes('authentication token required')) return true;
+        return false;
+    } catch {
+        return false;
+    }
+}
+
 
 
 function decodeJwtPayload(token) {
@@ -140,7 +155,7 @@ window.fetch = async function (resource, config) {
     }
 
     const res = await originalFetch(resource, config);
-    if (res.status === 401) {
+    if (res.status === 401 && await shouldClearAuthFor401(res)) {
         clearAuthState(true);
     }
     return res;
