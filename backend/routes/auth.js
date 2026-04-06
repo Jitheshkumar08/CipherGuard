@@ -158,6 +158,36 @@ router.post('/refresh', auth, async (req, res) => {
 });
 
 /**
+ * DEBUG: Token Info (for production troubleshooting)
+ */
+router.get('/debug/token-info', auth, (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(400).json({ error: 'No token in request.' });
+
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return res.status(400).json({ error: 'Invalid token format.' });
+
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        const nowSec = Math.floor(Date.now() / 1000);
+        const expSec = payload.exp;
+        const remainingSec = expSec - nowSec;
+
+        res.json({
+            user: req.user,
+            issuedAt: new Date(payload.iat * 1000).toISOString(),
+            expiresAt: new Date(expSec * 1000).toISOString(),
+            remainingSeconds: Math.max(0, remainingSec),
+            remainingHours: (remainingSec / 3600).toFixed(2),
+            isExpired: remainingSec <= 0,
+            effectiveJwtExpiry: process.env.JWT_EXPIRES_IN || '10h'
+        });
+    } catch (err) {
+        res.status(400).json({ error: 'Failed to decode token.' });
+    }
+});
+
+/**
  * LOGOUT
  */
 router.post('/logout', (req, res) => {

@@ -160,3 +160,45 @@ window.fetch = async function (resource, config) {
     }
     return res;
 };
+
+// Debug function to check token expiry (call it in console or app boot)
+window.debugTokenInfo = async function () {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.warn('[Token] No token in localStorage');
+        return;
+    }
+
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) throw new Error('Invalid token format');
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        const nowMs = Date.now();
+        const expMs = payload.exp * 1000;
+        const remainingMs = expMs - nowMs;
+
+        console.log('[Token] Local token info:', {
+            issuedAt: new Date(payload.iat * 1000).toISOString(),
+            expiresAt: new Date(expMs).toISOString(),
+            remainingMinutes: (remainingMs / 60000).toFixed(2),
+            isExpired: remainingMs <= 0
+        });
+
+        // Also try server endpoint if available
+        const serverInfo = await fetch('/api/auth/debug/token-info')
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null);
+
+        if (serverInfo) {
+            console.log('[Token] Server token info:', serverInfo);
+        }
+    } catch (err) {
+        console.error('[Token] Error decoding:', err.message);
+    }
+};
+
+// Auto-log on page load for debugging
+if (localStorage.getItem('token')) {
+    console.log('[Token] DEBUG: Call window.debugTokenInfo() to check token expiry');
+}
+
