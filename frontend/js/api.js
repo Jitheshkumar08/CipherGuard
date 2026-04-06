@@ -4,7 +4,8 @@ let lastRefreshAt = 0;
 
 const SESSION_REFRESH_COOLDOWN_MS = 60 * 1000;
 
-function clearAuthState(redirectToLogin = true) {
+function clearAuthState(redirectToLogin = true, reason = 'Unknown') {
+    localStorage.setItem('debug_last_logout_reason', reason);
     localStorage.removeItem('token');
     localStorage.removeItem('mlefps_pass');
     sessionStorage.removeItem('mlefps_pass');
@@ -66,20 +67,20 @@ function scheduleExpiryLogout() {
 
     const expiryMs = getTokenExpiryMs(token);
     if (!expiryMs || Date.now() >= expiryMs) {
-        clearAuthState(true);
+        clearAuthState(true, `scheduleExpiryLogout triggered on load due to Date.now() >= expiryMs. Token Exp: ${expiryMs}, Now: ${Date.now()}`);
         return;
     }
 
     const waitMs = Math.max(0, expiryMs - Date.now());
     authExpiryTimer = setTimeout(() => {
-        clearAuthState(true);
+        clearAuthState(true, 'Token expired based on scheduleExpiryLogout waitMs timer.');
     }, waitMs);
 }
 
 async function refreshSessionToken() {
     const token = localStorage.getItem('token');
     if (!token || !isTokenValid(token)) {
-        clearAuthState(true);
+        clearAuthState(true, 'refreshSessionToken: client-side check isTokenValid(token) failed!');
         return;
     }
 
@@ -91,7 +92,7 @@ async function refreshSessionToken() {
 
     const res = await originalFetch('/api/auth/refresh', { method: 'POST', headers });
     if (!res.ok) {
-        if (res.status === 401) clearAuthState(true);
+        if (res.status === 401) clearAuthState(true, 'refreshSessionToken got 401 from /api/auth/refresh');
         return;
     }
 
@@ -147,7 +148,7 @@ window.fetch = async function (resource, config) {
     const password = sessionStorage.getItem('mlefps_pass') || localStorage.getItem('mlefps_pass');
 
     if (token && !isTokenValid(token)) {
-        clearAuthState(true);
+        clearAuthState(true, 'window.fetch intercepted isTokenValid(token) = false before making API call.');
         throw new Error('Session expired. Please log in again.');
     }
 
@@ -166,7 +167,7 @@ window.fetch = async function (resource, config) {
 
     const res = await originalFetch(resource, config);
     if (res.status === 401 && await shouldClearAuthFor401(res)) {
-        clearAuthState(true);
+        clearAuthState(true, `window.fetch intercepted 401 from backend on resource URL: ${resource}`);
     }
     return res;
 };
@@ -206,9 +207,4 @@ window.debugTokenInfo = async function () {
         console.error('[Token] Error decoding:', err.message);
     }
 };
-
-// Auto-log on page load for debugging
-if (localStorage.getItem('token')) {
-    console.log('[Token] DEBUG: Call window.debugTokenInfo() to check token expiry');
-}
 
