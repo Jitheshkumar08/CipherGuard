@@ -86,8 +86,10 @@ app.use((err, _req, res, _next) => {
 (async () => {
   try {
     app.listen(PORT, () => {
+      const effectiveJwtExpiry = process.env.JWT_EXPIRES_IN || '10h';
       console.log(`\n✅ MLEFPS server running at http://localhost:${PORT}`);
       console.log(`   Encryption: AES-256-CBC → Triple-DES-CBC → RSA-2048-OAEP`);
+      console.log(`   JWT_EXPIRES_IN: ${effectiveJwtExpiry}`);
       console.log(`   Press Ctrl+C to stop.\n`);
     });
   } catch (err) {
