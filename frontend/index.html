@@ -521,6 +521,7 @@
     } else {
       function logout() {
         localStorage.removeItem('token');
+        localStorage.removeItem('mlefps_pass');
         sessionStorage.removeItem('mlefps_pass');
         window.location.href = '/home';
       }
