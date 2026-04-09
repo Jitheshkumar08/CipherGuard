@@ -29,7 +29,7 @@
         },
         {
             "source": "/api/:path*",
-            "destination": "https://cipherguard-mnks.onrender.com/api/:path*"
+            "destination": "https://cipherguard-kvut.onrender.com/api/:path*"
         }
     ]
 }
