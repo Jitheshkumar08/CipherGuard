@@ -247,3 +247,4 @@ If you want the backend to serve the frontend directly, set `SERVE_FRONTEND=true
 - The backend requires the current user password to unlock encryption keys for encryption and decryption operations.
 - Password changes re-encrypt the DEK, so existing encrypted files remain readable after a successful password update.
 - The encrypted file store is separate from the temporary upload directory.
+
