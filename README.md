@@ -240,7 +240,7 @@ The tests cover key generation, end-to-end encrypt/decrypt behavior, tamper dete
 
 ### Monolith mode
 
-If you want the backend to serve the frontend directly, set `SERVE_FRONTEND=true` in the backend environment
+If you want the backend to serve the frontend directly, set `SERVE_FRONTEND=true` in the backend environment.
 
 ## Notes
 
